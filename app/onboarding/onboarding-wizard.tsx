@@ -26,36 +26,49 @@ type Step = { title: string; description: string; fields: Field[] };
 const STEPS: Step[] = [
   {
     title: "Who you are right now",
-    description: "No filtering. Just the current picture.",
+    description: "No filtering. Just an honest snapshot of your life today.",
     fields: [
       {
         key: "who_you_are_now",
-        label: "Life stage, work/income situation, living situation, relationships, health",
-        placeholder: "e.g. 24, running a small agency solo, live with family, single, sleep is inconsistent...",
+        label: "Give a quick snapshot of your life right now — your age, work, money, where you live, relationships, and health.",
+        placeholder:
+          "Sample: I'm 24, running a small agency on my own, living with my family, single, and my sleep is all over the place.",
       },
     ],
   },
   {
     title: "Strengths & weaknesses",
-    description: "Be honest, not humble.",
+    description: "Be honest, not humble. This helps build plans around the real you.",
     fields: [
-      { key: "strengths", label: "What are you already good at?", placeholder: "..." },
-      { key: "weaknesses", label: "What do you consistently struggle with?", placeholder: "..." },
+      {
+        key: "strengths",
+        label: "What are you already good at?",
+        placeholder:
+          "Sample: I learn new things fast, I stay calm under pressure, and I'm good at talking to people.",
+      },
+      {
+        key: "weaknesses",
+        label: "What do you keep struggling with?",
+        placeholder:
+          "Sample: I procrastinate, I get distracted by my phone, and I start things but rarely finish them.",
+      },
       {
         key: "past_patterns",
-        label: "Past pattern: what's made you quit or not follow through before?",
-        placeholder: "...",
+        label: "In the past, what usually makes you quit or stop following through?",
+        placeholder:
+          "Sample: I lose interest once it stops feeling new, or I miss a couple of days and then give up on the whole thing.",
       },
     ],
   },
   {
     title: "3-year vision",
-    description: "Career/business, health, relationships, finances, lifestyle.",
+    description: "The big picture — work, health, relationships, money, lifestyle.",
     fields: [
       {
         key: "vision_3_year",
-        label: "Where is your life in 3 years if this goes right?",
-        placeholder: "...",
+        label: "If the next 3 years go really well, what does your life look like?",
+        placeholder:
+          "Sample: Agency making $5k a month, training 4x a week and in great shape, moved into my own place, in a serious relationship.",
       },
     ],
   },
@@ -65,8 +78,9 @@ const STEPS: Step[] = [
     fields: [
       {
         key: "vision_1_year",
-        label: "What specifically has to be true 1 year from now?",
-        placeholder: "...",
+        label: "One year from now, what has to be true to prove you're on track?",
+        placeholder:
+          "Sample: 10 solid clients, posting content every week without fail, able to do 10 pull-ups, 3 months of expenses saved.",
       },
     ],
   },
@@ -76,36 +90,45 @@ const STEPS: Step[] = [
     fields: [
       {
         key: "future_identity_traits",
-        label: "Traits and standards of that person",
-        placeholder: "e.g. disciplined, shows up even when unmotivated, protects mornings...",
+        label: "What kind of person do you need to become? Their traits and standards.",
+        placeholder:
+          "Sample: Disciplined, shows up even when unmotivated, protects the morning, keeps promises to himself.",
       },
       {
         key: "future_identity_behaviors",
-        label: "The specific daily/weekly behaviors that person runs, that current-you doesn't",
-        placeholder: "...",
+        label: "What does that person do every day or week that you don't do yet?",
+        placeholder:
+          "Sample: Wakes at 6, trains before work, writes content daily, reviews the week every Sunday, no phone in bed.",
       },
     ],
   },
   {
     title: "Motivation & fears",
-    description: "The real reason this matters.",
+    description: "The real reason this matters to you.",
     fields: [
-      { key: "motivation", label: "Why does this actually matter to you?", placeholder: "..." },
+      {
+        key: "motivation",
+        label: "Why does this actually matter to you?",
+        placeholder:
+          "Sample: I'm tired of feeling behind my friends and I want to prove to myself I can actually finish what I start.",
+      },
       {
         key: "fears",
         label: "What are you most afraid happens if nothing changes?",
-        placeholder: "...",
+        placeholder:
+          "Sample: In 5 years I'm in the exact same place — same job, same weight, same excuses — and I hate myself for it.",
       },
     ],
   },
   {
     title: "Capacity check",
-    description: "Everything already competing for your time and energy — so plans get built realistic, not stacked.",
+    description: "Everything already on your plate — so plans stay realistic instead of overstacked.",
     fields: [
       {
         key: "capacity_check",
-        label: "Work, gym, content, outreach, relationships, everything currently on your plate",
-        placeholder: "...",
+        label: "What's already taking your time and energy right now? Think work, gym, content, outreach, relationships, everything.",
+        placeholder:
+          "Sample: Agency work 6 hrs a day, gym 4x a week, posting reels daily, messaging 10 leads a day, family in the evenings, bad sleep.",
       },
     ],
   },
@@ -115,13 +138,15 @@ const STEPS: Step[] = [
     fields: [
       {
         key: "energy_pattern",
-        label: "When is your energy naturally highest / lowest during the day?",
-        placeholder: "...",
+        label: "When is your energy naturally highest and lowest during the day?",
+        placeholder:
+          "Sample: Sharpest from 7–11am, crash around 2–4pm, then get a second wind late at night.",
       },
       {
         key: "feedback_style",
-        label: "What kind of feedback actually lands with you vs. what do you tune out?",
-        placeholder: "e.g. I need it blunt and specific, vague encouragement does nothing for me...",
+        label: "What kind of feedback actually works for you, and what do you tune out?",
+        placeholder:
+          "Sample: I need it blunt and specific. Vague encouragement like 'you got this' does nothing for me.",
       },
     ],
   },

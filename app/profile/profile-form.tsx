@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, Cpu, ExternalLink, HelpCircle, KeyRound, Loader2, Save, Trash2 } from "lucide-react";
+import { CheckCircle2, Cpu, Eye, EyeOff, ExternalLink, HelpCircle, KeyRound, Loader2, Save, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateAppUser, updateGeminiKey, updateGeminiModel } from "@/lib/actions/profile";
@@ -135,22 +135,40 @@ export function ProfileForm({
 }
 
 /** Per-profile Gemini key — Leo answers with THIS profile's own free Google AI quota. */
+// Validate a Google AI Studio key by SHAPE, not prefix — Google ships several
+// families (legacy "AIza…" = 39 chars, newer "AQ.Ab8…" ≈ 53) and adds more over
+// time. All use only [A-Za-z0-9._-]. Gate on charset + length so every real key
+// passes and only spaces / short / garbage pastes fail.
+const GEMINI_KEY_RE = /^[A-Za-z0-9._-]{35,100}$/;
+
 export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
   const [key, setKey] = useState("");
   const [stored, setStored] = useState(hasKey);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(false);
+  const [reveal, setReveal] = useState(false);
   const [pending, startTransition] = useTransition();
+
+  const trimmed = key.trim();
+  const looksValid = GEMINI_KEY_RE.test(trimmed);
 
   function save(next: string) {
     setSaved(false);
     setError(null);
+    // Empty = "remove my key" (allowed). Otherwise block a bad-shaped paste
+    // before it ever hits the server, with a clear reason.
+    const value = next.trim();
+    if (value && !GEMINI_KEY_RE.test(value)) {
+      setError("That doesn't look like a Google AI Studio key. Paste the full key with nothing before or after it (they look like AIza… or AQ.Ab8…).");
+      return;
+    }
     startTransition(async () => {
-      const res = await updateGeminiKey(next);
+      const res = await updateGeminiKey(value);
       if (res.ok) {
-        setStored(Boolean(next.trim()));
+        setStored(Boolean(value));
         setKey("");
+        setReveal(false);
         setSaved(true);
       } else setError(res.error);
     });
@@ -170,22 +188,52 @@ export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
       )}
 
       <div className="flex items-center gap-2">
-        <Input
-          type="password"
-          value={key}
-          onChange={(e) => { setKey(e.target.value); setSaved(false); }}
-          placeholder={stored ? "Paste a new key to replace it" : "AIza…"}
-          autoComplete="off"
-        />
+        <div className="relative flex-1">
+          <Input
+            type={reveal ? "text" : "password"}
+            value={key}
+            // Strip stray spaces/newlines that often ride along on a copy-paste.
+            onChange={(e) => { setKey(e.target.value.replace(/\s+/g, "")); setSaved(false); setError(null); }}
+            onKeyDown={(e) => { if (e.key === "Enter" && trimmed && !pending) save(key); }}
+            placeholder={stored ? "Paste a new key to replace it" : "Paste your key (AIza… or AQ.Ab8…)"}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck={false}
+            className="pr-10 font-mono"
+          />
+          {key && (
+            <button
+              type="button"
+              onClick={() => setReveal((r) => !r)}
+              aria-label={reveal ? "Hide key" : "Show key"}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {reveal ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          )}
+        </div>
         <button
           onClick={() => save(key)}
-          disabled={pending || !key.trim()}
+          disabled={pending || !trimmed}
           className="inline-flex shrink-0 items-center gap-2 rounded-2xl grad-blue px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 disabled:opacity-60 disabled:hover:translate-y-0"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : <KeyRound className="size-4" />}
           Save
         </button>
       </div>
+      {/* Live shape hint while typing — green once it matches, so a bad paste is obvious before saving. */}
+      {trimmed && !error && (
+        looksValid ? (
+          <p className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald">
+            <CheckCircle2 className="size-3.5" /> Looks like a valid key — press Save.
+          </p>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Keep going — paste the full key from Google AI Studio.
+          </p>
+        )
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
       {saved && (
         <p className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald">
@@ -231,7 +279,9 @@ export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
             <strong>Create API key in new project</strong>.
           </li>
           <li>
-            Copy the key that appears — it starts with <code className="rounded bg-card px-1 py-0.5 text-xs">AIza</code>.
+            Copy the <strong>whole</strong> key that appears. Google shows one of two shapes —{" "}
+            <code className="rounded bg-card px-1 py-0.5 text-xs">AIza…</code> or{" "}
+            <code className="rounded bg-card px-1 py-0.5 text-xs">AQ.Ab8…</code>. Either is fine.
           </li>
           <li>Paste it in the box above and press Save. Done — Leo now thinks with your key.</li>
         </ol>

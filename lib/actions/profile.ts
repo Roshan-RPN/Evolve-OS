@@ -73,8 +73,16 @@ export async function updateAppUser(input: { name: string; email: string; avatar
 export async function updateGeminiKey(key: string) {
   const userId = await getUserId();
   const clean = key.trim();
-  if (clean && !/^[A-Za-z0-9_-]{20,80}$/.test(clean))
-    return { ok: false, error: "That doesn't look like a Gemini API key (starts with AIza…)." };
+  // Google AI Studio keys come in two families and Google keeps adding more, so
+  // we validate by SHAPE not by prefix: legacy "AIza…" is 39 chars, the newer
+  // "AQ.Ab8…" runs ~53. Both use only [A-Za-z0-9._-]. Gate on charset + length
+  // (35–100) so both pass and a future variant isn't wrongly rejected, while
+  // spaces / short / garbage pastes still fail loud.
+  if (clean && !/^[A-Za-z0-9._-]{35,100}$/.test(clean))
+    return {
+      ok: false,
+      error: "That doesn't look like a Google AI Studio key. Paste the full key (nothing before or after it).",
+    };
 
   const supabase = createServerClient();
   const { error } = await supabase

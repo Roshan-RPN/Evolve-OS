@@ -37,7 +37,7 @@ export default async function ProfilePage() {
 
         {/* Identity bar — who's signed in */}
         <section className="card-tint tint-blue corner-cut flex items-center gap-4 p-4 lg:p-5">
-          <span className="grid size-14 shrink-0 place-items-center rounded-3xl grad-blue font-display text-xl font-bold text-white shadow-lg">
+          <span className="grid size-14 shrink-0 place-items-center rounded-3xl avatar-pro font-display text-xl font-bold text-white">
             {avatar ? <span className="text-3xl leading-none">{avatar}</span> : monogram || "?"}
           </span>
           <div className="min-w-0 flex-1">
