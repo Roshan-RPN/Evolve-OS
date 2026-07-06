@@ -12,20 +12,21 @@ type GenerateTextArgs = {
   temperature?: number;
 };
 
-/** The signed-in profile's own Gemini key, if they saved one on /profile.
-    Falls back to null outside a session (or before migration 0010 ran). */
-async function userGeminiKey(): Promise<string | null> {
+/** The signed-in profile's own Gemini key + model choice, if saved on /profile.
+    Falls back to nulls outside a session (or before migrations 0010/0014 ran). */
+async function userAiConfig(): Promise<{ key: string | null; model: string | null }> {
   try {
     const userId = await getUserId();
     const supabase = createServerClient();
     const { data } = await supabase
       .from("app_users")
-      .select("gemini_api_key")
+      .select("gemini_api_key, gemini_model")
       .eq("id", userId)
       .maybeSingle();
-    return (data as { gemini_api_key?: string | null } | null)?.gemini_api_key ?? null;
+    const row = data as { gemini_api_key?: string | null; gemini_model?: string | null } | null;
+    return { key: row?.gemini_api_key ?? null, model: row?.gemini_model ?? null };
   } catch {
-    return null;
+    return { key: null, model: null };
   }
 }
 
@@ -60,10 +61,12 @@ async function callOpenAI({ system, prompt, temperature = 0.8 }: GenerateTextArg
 }
 
 async function callGemini({ system, prompt, temperature = 0.8 }: GenerateTextArgs) {
-  // Per-profile key first (each user runs Leo on their own quota), env key as shared fallback.
-  const apiKey = (await userGeminiKey()) || process.env.GEMINI_API_KEY;
+  // Per-profile key + model first (each user runs Leo on their own quota and
+  // their own model pick); env values are the shared fallback.
+  const cfg = await userAiConfig();
+  const apiKey = cfg.key || process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("GEMINI_API_KEY is not set");
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = cfg.model || process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,

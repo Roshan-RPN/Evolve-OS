@@ -54,7 +54,7 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${sans.variable} ${display.variable} ${geistMono.variable} ${wordmark.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {/* Light-only for now — dark mode retired until the palette is ready for it */}
         <ThemeProvider
           attribute="class"

@@ -13,7 +13,8 @@ const ERRORS: Record<string, string> = {
   taken: "That email or name is already taken.",
   name: "Pick a name (40 characters max).",
   email: "That email doesn't look right.",
-  short: "Password needs at least 4 characters.",
+  short: "Password needs at least 8 characters.",
+  rate: "Too many attempts. Wait a few minutes and try again.",
 };
 
 export default async function LoginPage({
@@ -47,10 +48,10 @@ export default async function LoginPage({
             </div>
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
-              <Input id="password" name="password" type="password" required minLength={4} placeholder="••••••••" />
+              <Input id="password" name="password" type="password" required minLength={8} placeholder="••••••••" />
             </div>
             {error && <p className="text-sm text-destructive">{ERRORS[error] ?? ERRORS["1"]}</p>}
-            <Button type="submit" className="w-full grad-violet border-0 text-white">
+            <Button type="submit" className="w-full grad-blue border-0 text-white">
               Create account
             </Button>
             <Link
@@ -72,7 +73,7 @@ export default async function LoginPage({
               <Input id="password" name="password" type="password" required placeholder="••••••••" />
             </div>
             {error && <p className="text-sm text-destructive">{ERRORS[error] ?? ERRORS["1"]}</p>}
-            <Button type="submit" className="w-full grad-violet border-0 text-white">
+            <Button type="submit" className="w-full grad-blue border-0 text-white">
               Sign in
             </Button>
             <Link

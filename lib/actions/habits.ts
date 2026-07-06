@@ -28,7 +28,22 @@ export type Habit = {
   color?: string | null; // key from lib/habit-colors.ts; absent pre-migration-0011
 };
 
-async function recomputeStreak(habitId: string) {
+// Confirm a habit id belongs to the signed-in profile before any write touches
+// it. The app runs on the service_role key (RLS bypassed), so ownership must be
+// enforced in code — otherwise a crafted action call could poke another user's
+// habit by id. Returns true only when userId owns habitId.
+async function ownsHabit(habitId: string, userId: string) {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("habits")
+    .select("id")
+    .eq("id", habitId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
+async function recomputeStreak(habitId: string, userId: string) {
   const supabase = createServerClient();
   const { data: logs } = await supabase
     .from("habit_logs")
@@ -55,7 +70,11 @@ async function recomputeStreak(habitId: string) {
   const { data: habit } = await supabase.from("habits").select("best_streak").eq("id", habitId).single();
   const bestStreak = Math.max(habit?.best_streak ?? 0, streak);
 
-  await supabase.from("habits").update({ streak, best_streak: bestStreak }).eq("id", habitId);
+  await supabase
+    .from("habits")
+    .update({ streak, best_streak: bestStreak })
+    .eq("id", habitId)
+    .eq("user_id", userId);
   return streak;
 }
 
@@ -184,6 +203,7 @@ export async function suggestHabitsForVision(): Promise<SuggestedHabit[]> {
 
 export async function toggleHabitToday(habitId: string, completed: boolean, minutes?: number | null) {
   const userId = await getUserId();
+  if (!(await ownsHabit(habitId, userId))) return; // not your habit — no-op
   const supabase = createServerClient();
   const date = todayISO();
   const base = { user_id: userId, habit_id: habitId, date, completed, source: "manual" };
@@ -194,7 +214,7 @@ export async function toggleHabitToday(habitId: string, completed: boolean, minu
   if (error && minutes !== undefined) {
     await supabase.from("habit_logs").upsert(base, { onConflict: "habit_id,date" });
   }
-  await recomputeStreak(habitId);
+  await recomputeStreak(habitId, userId);
   revalidatePath("/habits");
   revalidatePath("/analytics");
 }
@@ -202,6 +222,7 @@ export async function toggleHabitToday(habitId: string, completed: boolean, minu
 /** Set/replace minutes on today's log for a habit (habit must already be done). */
 export async function logHabitMinutes(habitId: string, minutes: number | null) {
   const userId = await getUserId();
+  if (!(await ownsHabit(habitId, userId))) return { ok: false as const };
   const supabase = createServerClient();
   const date = todayISO();
   const { error } = await supabase

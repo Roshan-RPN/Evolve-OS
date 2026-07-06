@@ -2,7 +2,6 @@
 
 import { createServerClient } from "@/lib/supabase/server";
 import { getUserId } from "@/lib/user";
-import { redirect } from "next/navigation";
 
 export type IdentityRow = {
   id: string;
@@ -72,7 +71,9 @@ export type OnboardingInput = {
   feedback_style: string;
 };
 
-export async function submitOnboarding(input: OnboardingInput) {
+export type SubmitResult = { ok: true } | { ok: false; error: string };
+
+export async function submitOnboarding(input: OnboardingInput): Promise<SubmitResult> {
   const userId = await getUserId();
   const supabase = createServerClient();
 
@@ -87,11 +88,13 @@ export async function submitOnboarding(input: OnboardingInput) {
     updated_at: new Date().toISOString(),
   };
 
-  if (existingIdentity) {
-    await supabase.from("identity").update(identityPayload).eq("id", existingIdentity.id);
-  } else {
-    await supabase.from("identity").insert({ ...identityPayload, user_id: userId });
-  }
+  // Check the DB result — Supabase returns { error }, it does NOT throw. Without
+  // this, a failed save (e.g. FK violation from a stale session) looked like a
+  // success and bounced the user back to onboarding, or hung on "Saving...".
+  const identityRes = existingIdentity
+    ? await supabase.from("identity").update(identityPayload).eq("id", existingIdentity.id)
+    : await supabase.from("identity").insert({ ...identityPayload, user_id: userId });
+  if (identityRes.error) return { ok: false, error: identityRes.error.message };
 
   const profilePayload = {
     who_you_are_now: input.who_you_are_now,
@@ -106,11 +109,12 @@ export async function submitOnboarding(input: OnboardingInput) {
     updated_at: new Date().toISOString(),
   };
 
-  if (existingProfile) {
-    await supabase.from("profile").update(profilePayload).eq("id", existingProfile.id);
-  } else {
-    await supabase.from("profile").insert({ ...profilePayload, user_id: userId });
-  }
+  const profileRes = existingProfile
+    ? await supabase.from("profile").update(profilePayload).eq("id", existingProfile.id)
+    : await supabase.from("profile").insert({ ...profilePayload, user_id: userId });
+  if (profileRes.error) return { ok: false, error: profileRes.error.message };
 
-  redirect("/");
+  // No redirect here — the client navigates after this resolves so the
+  // transition can't swallow the redirect and bounce back to onboarding.
+  return { ok: true };
 }

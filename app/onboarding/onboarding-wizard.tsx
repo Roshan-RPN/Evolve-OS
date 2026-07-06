@@ -1,12 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import {
+  UserRound,
+  Scale,
+  Mountain,
+  Target,
+  Sparkles,
+  Flame,
+  Gauge,
+  Compass,
+} from "lucide-react";
 import { submitOnboarding, type OnboardingInput } from "@/lib/actions/onboarding";
 
 type Field = { key: keyof OnboardingInput; label: string; placeholder: string };
@@ -132,26 +144,56 @@ const EMPTY: OnboardingInput = {
   feedback_style: "",
 };
 
-// Per-step accent — walks the palette so the wizard feels alive, not one flat blue.
-const STEP_ACCENTS = [
-  { grad: "grad-blue", tint: "tint-blue" },
-  { grad: "grad-indigo", tint: "tint-indigo" },
-  { grad: "grad-violet", tint: "tint-violet" },
-  { grad: "grad-teal", tint: "tint-teal" },
-  { grad: "grad-emerald", tint: "tint-emerald" },
-  { grad: "grad-coral", tint: "tint-coral" },
-  { grad: "grad-rose", tint: "tint-rose" },
-  { grad: "grad-amber", tint: "tint-amber" },
+// Per-step hero — flat solid colour + icon, same premium banner as the
+// morning / evening rituals. No gradients, no tinted card washes.
+const STEP_META = [
+  { grad: "grad-blue", icon: UserRound },
+  { grad: "grad-indigo", icon: Scale },
+  { grad: "grad-violet", icon: Mountain },
+  { grad: "grad-teal", icon: Target },
+  { grad: "grad-emerald", icon: Sparkles },
+  { grad: "grad-coral", icon: Flame },
+  { grad: "grad-rose", icon: Gauge },
+  { grad: "grad-bronze", icon: Compass },
 ] as const;
 
+/* One flat confident colour, icon chip, punchy title — matches StepHero
+   in the morning wizard so the whole app reads as one premium surface. */
+function StepHero({
+  grad,
+  icon: Icon,
+  title,
+  sub,
+}: {
+  grad: string;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  sub: string;
+}) {
+  return (
+    <div className={`corner-cut relative overflow-hidden ${grad} p-5 text-white`}>
+      <div className="relative flex items-center gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
+          <Icon className="size-5" />
+        </span>
+        <div className="min-w-0">
+          <p className="font-display text-xl font-extrabold leading-tight tracking-tight">{title}</p>
+          <p className="mt-1 text-xs font-medium text-white/85">{sub}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInput> }) {
+  const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   // Returning users see their saved answers and can edit them; submit re-upserts.
   const [data, setData] = useState<OnboardingInput>({ ...EMPTY, ...initial });
-  const [pending, startTransition] = useTransition();
+  const [saving, setSaving] = useState(false);
 
   const step = STEPS[stepIndex];
-  const accent = STEP_ACCENTS[stepIndex % STEP_ACCENTS.length];
+  const meta = STEP_META[stepIndex % STEP_META.length];
   const isLast = stepIndex === STEPS.length - 1;
   const progress = ((stepIndex + 1) / STEPS.length) * 100;
 
@@ -161,9 +203,26 @@ export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInpu
     setData((prev) => ({ ...prev, [key]: value }));
   }
 
-  function next() {
+  async function next() {
     if (isLast) {
-      startTransition(() => submitOnboarding(data));
+      setSaving(true);
+      let result;
+      try {
+        result = await submitOnboarding(data);
+      } catch {
+        // Network / server crash — un-stick the button and tell the user.
+        toast.error("Could not save. Check your connection and try again.");
+        setSaving(false);
+        return;
+      }
+      if (!result.ok) {
+        toast.error(result.error || "Could not save your answers. Try again.");
+        setSaving(false);
+        return;
+      }
+      // Saved — navigate from the client so the redirect can't be dropped mid-transition.
+      router.replace("/");
+      router.refresh();
       return;
     }
     setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
@@ -176,14 +235,9 @@ export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInpu
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-4 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(0.9rem+env(safe-area-inset-top))] lg:justify-center lg:gap-6 lg:p-6">
       <div className="space-y-2.5">
-        <div className="flex items-center gap-2.5">
-          <span className={`grid size-8 shrink-0 place-items-center rounded-xl ${accent.grad} text-sm font-bold text-white shadow-md`}>
-            {stepIndex + 1}
-          </span>
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Step {stepIndex + 1} of {STEPS.length}
-          </p>
-        </div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
+          Step {stepIndex + 1} of {STEPS.length}
+        </p>
         <Progress value={progress} />
       </div>
 
@@ -195,13 +249,9 @@ export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInpu
           exit={{ opacity: 0, x: -24 }}
           transition={{ duration: 0.25, ease: "easeOut" }}
         >
-          <Card className={`card-tint ${accent.tint} overflow-hidden border-0 shadow-xl`}>
-            <div className={`-mt-4 h-1.5 w-full ${accent.grad}`} />
-            <CardHeader>
-              <CardTitle className="font-display text-xl">{step.title}</CardTitle>
-              <p className="text-sm text-muted-foreground">{step.description}</p>
-            </CardHeader>
-            <CardContent className="space-y-5">
+          <Card className="shadow-xl">
+            <CardContent className="space-y-5 pt-6">
+              <StepHero grad={meta.grad} icon={meta.icon} title={step.title} sub={step.description} />
               {step.fields.map((field) => (
                 <div key={field.key} className="space-y-2">
                   <Label htmlFor={field.key}>{field.label}</Label>
@@ -224,16 +274,16 @@ export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInpu
           variant="outline"
           className="h-12 border-primary/35 bg-card px-5 font-semibold text-primary shadow-sm hover:bg-primary/10 hover:text-primary lg:h-10"
           onClick={back}
-          disabled={stepIndex === 0 || pending}
+          disabled={stepIndex === 0 || saving}
         >
           Back
         </Button>
         <Button
           className="h-12 flex-1 text-[15px] font-semibold lg:h-10 lg:flex-none lg:px-8 lg:text-sm"
           onClick={next}
-          disabled={!canAdvance || pending}
+          disabled={!canAdvance || saving}
         >
-          {isLast ? (pending ? "Saving..." : "Finish") : "Next"}
+          {isLast ? (saving ? "Saving..." : "Finish") : "Next"}
         </Button>
       </div>
     </div>

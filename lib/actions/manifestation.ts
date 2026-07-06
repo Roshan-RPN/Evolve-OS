@@ -340,18 +340,35 @@ export async function deleteManifestation(id: string): Promise<void> {
 // Upload an image file to the vision-board bucket and return its public URL.
 // Randomized path (unguessable); returns null on any failure so the UI can
 // show an error and fall back to the URL-paste field.
+// Only real image types, each pinned to the content-type WE serve it as — never
+// the client-supplied file.type (which could be text/html and turn the public
+// bucket into an XSS host). Extension not on this list → rejected.
+const IMAGE_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif",
+};
+const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+
 export async function uploadVisionImage(formData: FormData): Promise<string | null> {
+  await getUserId(); // server action — require a real session (redirects if not)
   const file = formData.get("file");
   if (!(file instanceof File) || file.size === 0) return null;
+  if (file.size > MAX_IMAGE_BYTES) return null; // oversized → reject (storage/DoS guard)
+
+  const ext = (file.name.split(".").pop() || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const contentType = IMAGE_TYPES[ext];
+  if (!contentType) return null; // not an allowed image extension
 
   const supabase = createServerClient();
-  const ext = (file.name.split(".").pop() || "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const path = `${randomUUID()}.${ext || "jpg"}`;
+  const path = `${randomUUID()}.${ext}`;
   const bytes = Buffer.from(await file.arrayBuffer());
 
   const { error } = await supabase.storage
     .from(VISION_BUCKET)
-    .upload(path, bytes, { contentType: file.type || "image/jpeg", upsert: false });
+    .upload(path, bytes, { contentType, upsert: false });
   if (error) return null;
 
   const { data } = supabase.storage.from(VISION_BUCKET).getPublicUrl(path);

@@ -2,10 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, ExternalLink, HelpCircle, KeyRound, Loader2, Save, Trash2 } from "lucide-react";
+import { CheckCircle2, Cpu, ExternalLink, HelpCircle, KeyRound, Loader2, Save, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { updateAppUser, updateGeminiKey } from "@/lib/actions/profile";
+import { updateAppUser, updateGeminiKey, updateGeminiModel } from "@/lib/actions/profile";
+import { GEMINI_MODELS } from "@/lib/ai/models";
 
 /** Preset avatars — people first, then animals and symbols. Pick one, or stay with the monogram. */
 export const AVATARS = [
@@ -234,6 +235,76 @@ export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
           </li>
           <li>Paste it in the box above and press Save. Done — Leo now thinks with your key.</li>
         </ol>
+      )}
+    </div>
+  );
+}
+
+/** Per-profile model pick — which Gemini model Leo thinks with. "" = app default. */
+export function ModelForm({ current }: { current: string }) {
+  const [model, setModel] = useState(current);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function pick(next: string) {
+    if (next === model) return;
+    const prev = model;
+    setModel(next);
+    setSaved(false);
+    setError(null);
+    startTransition(async () => {
+      const res = await updateGeminiModel(next);
+      if (res.ok) setSaved(true);
+      else {
+        setModel(prev);
+        setError(res.error);
+      }
+    });
+  }
+
+  return (
+    <div className="space-y-3">
+      <div className="grid gap-2 sm:grid-cols-3">
+        {GEMINI_MODELS.map((m) => {
+          const active = model === m.id;
+          return (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => pick(m.id)}
+              disabled={pending}
+              className={`rounded-2xl border p-3 text-left transition-all disabled:opacity-70 ${
+                active
+                  ? "border-primary/50 bg-primary/10 shadow-md ring-2 ring-primary/30"
+                  : "border-border/60 bg-muted/40 hover:border-primary/50"
+              }`}
+            >
+              <span className="flex items-center gap-1.5 font-display text-sm font-semibold">
+                <Cpu className="size-3.5 text-primary" /> {m.label}
+              </span>
+              <span className="mt-1 block text-[11px] leading-snug text-muted-foreground">{m.blurb}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => pick("")}
+        disabled={pending}
+        className={`text-xs font-semibold transition-colors disabled:opacity-70 ${
+          model === "" ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        }`}
+      >
+        {model === "" ? "✓ Using the app default model" : "Reset to app default"}
+      </button>
+
+      {error && <p className="text-sm text-destructive">{error}</p>}
+      {saved && (
+        <p className="inline-flex items-center gap-1.5 text-sm font-medium text-emerald">
+          <CheckCircle2 className="size-4" /> Saved
+        </p>
       )}
     </div>
   );

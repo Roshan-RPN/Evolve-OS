@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { UserRound, LogOut, ClipboardList, ArrowRight, Sparkles } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
-import { ProfileForm, GeminiKeyForm } from "./profile-form";
+import { ProfileForm, GeminiKeyForm, ModelForm } from "./profile-form";
 import { getAppUser } from "@/lib/actions/profile";
 import { APP_NAME, COACH_NAME } from "@/lib/brand";
 
@@ -66,6 +66,17 @@ export default async function ProfilePage() {
             coaching runs on your quota, private to this profile.
           </p>
           <GeminiKeyForm hasKey={user?.hasGeminiKey ?? false} />
+
+          <div className="mt-5 border-t border-border/60 pt-4">
+            <h3 className="mb-1 flex items-center gap-2 font-display text-sm font-semibold">
+              Which model {COACH_NAME} thinks with
+            </h3>
+            <p className="mb-3 text-xs text-muted-foreground">
+              Pick the Gemini model for your coaching. Bigger = deeper, but slower and heavier on
+              your quota.
+            </p>
+            <ModelForm current={user?.geminiModel ?? ""} />
+          </div>
         </section>
 
         {/* Questionnaire */}

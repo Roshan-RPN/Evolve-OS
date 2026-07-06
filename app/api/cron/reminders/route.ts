@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
+import { constantTimeEqual } from "@/lib/auth";
 import { sendPushToUser } from "@/lib/push-server";
 import { createCheckinsFromTodayPlan } from "@/lib/actions/checkins";
 import { todayISO } from "@/lib/date";
@@ -16,7 +17,8 @@ export async function GET(request: NextRequest) {
   const secret = searchParams.get("secret");
   const type = searchParams.get("type");
 
-  if (secret !== process.env.CRON_SECRET) {
+  const expected = process.env.CRON_SECRET;
+  if (!expected || !secret || !constantTimeEqual(secret, expected)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createServerClient } from "@/lib/supabase/server";
 import { getUserId } from "@/lib/user";
+import { GEMINI_MODEL_IDS } from "@/lib/ai/models";
 
 export type AppUser = {
   id: string;
@@ -10,6 +11,7 @@ export type AppUser = {
   email: string | null;
   avatar: string | null;
   hasGeminiKey: boolean;
+  geminiModel: string | null;
   created_at: string | null;
 };
 
@@ -28,6 +30,7 @@ export async function getAppUser(): Promise<AppUser | null> {
     email?: string | null;
     avatar?: string | null;
     gemini_api_key?: string | null;
+    gemini_model?: string | null;
     created_at?: string | null;
   };
   return {
@@ -36,6 +39,7 @@ export async function getAppUser(): Promise<AppUser | null> {
     email: row.email ?? null,
     avatar: row.avatar ?? null,
     hasGeminiKey: Boolean(row.gemini_api_key),
+    geminiModel: row.gemini_model ?? null,
     created_at: row.created_at ?? null,
   };
 }
@@ -76,6 +80,24 @@ export async function updateGeminiKey(key: string) {
   const { error } = await supabase
     .from("app_users")
     .update({ gemini_api_key: clean || null })
+    .eq("id", userId);
+
+  if (error) return { ok: false, error: MIGRATION_HINT };
+  revalidatePath("/profile");
+  return { ok: true as const, error: null };
+}
+
+/** Save this profile's Leo model, or "" to fall back to the app default. */
+export async function updateGeminiModel(model: string) {
+  const userId = await getUserId();
+  const clean = model.trim();
+  if (clean && !GEMINI_MODEL_IDS.includes(clean))
+    return { ok: false, error: "Unknown model." };
+
+  const supabase = createServerClient();
+  const { error } = await supabase
+    .from("app_users")
+    .update({ gemini_model: clean || null })
     .eq("id", userId);
 
   if (error) return { ok: false, error: MIGRATION_HINT };

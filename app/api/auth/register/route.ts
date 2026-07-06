@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { AUTH_COOKIE_NAME, hashPasscode, sessionTokenFor } from "@/lib/auth";
 import { createServerClient } from "@/lib/supabase/server";
+import { clientIp, rateLimit } from "@/lib/rate-limit";
+
+// Abuse guard: 5 signups per IP per 10 minutes.
+const LIMIT = 5;
+const WINDOW_MS = 10 * 60 * 1000;
+const MIN_PASSWORD = 8;
+// Cap length so a giant password can't tie up the CPU in scrypt (DoS).
+const MAX_PASSWORD = 128;
 
 function fail(request: NextRequest, error: string) {
   const url = new URL("/login", request.url);
@@ -22,6 +30,10 @@ function signIn(request: NextRequest, userId: string, dest: string) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!rateLimit(`register:${clientIp(request)}`, LIMIT, WINDOW_MS).ok) {
+    return fail(request, "rate");
+  }
+
   const formData = await request.formData();
   const name = String(formData.get("name") || "").trim();
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -29,7 +41,7 @@ export async function POST(request: NextRequest) {
 
   if (!name || name.length > 40) return fail(request, "name");
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail(request, "email");
-  if (password.length < 4) return fail(request, "short");
+  if (password.length < MIN_PASSWORD || password.length > MAX_PASSWORD) return fail(request, "short");
 
   const supabase = createServerClient();
 
