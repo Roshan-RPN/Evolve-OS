@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { APP_MARK } from "@/lib/brand";
 
 export const size = { width: 512, height: 512 };
 export const contentType = "image/png";
@@ -13,15 +14,15 @@ export default function Icon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
+          background: "#2f6df6",
           borderRadius: 96,
-          fontSize: 260,
+          fontSize: 300,
           fontWeight: 700,
           color: "white",
           fontFamily: "sans-serif",
         }}
       >
-        L
+        {APP_MARK}
       </div>
     ),
     size

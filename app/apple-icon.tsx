@@ -1,4 +1,5 @@
 import { ImageResponse } from "next/og";
+import { APP_MARK } from "@/lib/brand";
 
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
@@ -13,14 +14,14 @@ export default function AppleIcon() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #6366f1 0%, #a855f7 100%)",
-          fontSize: 92,
+          background: "#2f6df6",
+          fontSize: 108,
           fontWeight: 700,
           color: "white",
           fontFamily: "sans-serif",
         }}
       >
-        L
+        {APP_MARK}
       </div>
     ),
     size
