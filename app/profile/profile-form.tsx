@@ -160,7 +160,7 @@ export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
     // before it ever hits the server, with a clear reason.
     const value = next.trim();
     if (value && !GEMINI_KEY_RE.test(value)) {
-      setError("That doesn't look like a Google AI Studio key. Paste the full key with nothing before or after it (they look like AIza… or AQ.Ab8…).");
+      setError("That doesn't look like a Google AI Studio key. Paste the whole key exactly as Google gave it, with no spaces before or after.");
       return;
     }
     startTransition(async () => {
@@ -195,7 +195,7 @@ export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
             // Strip stray spaces/newlines that often ride along on a copy-paste.
             onChange={(e) => { setKey(e.target.value.replace(/\s+/g, "")); setSaved(false); setError(null); }}
             onKeyDown={(e) => { if (e.key === "Enter" && trimmed && !pending) save(key); }}
-            placeholder={stored ? "Paste a new key to replace it" : "Paste your key (AIza… or AQ.Ab8…)"}
+            placeholder={stored ? "Paste a new key to replace it" : "Paste your Google AI Studio key"}
             autoComplete="off"
             autoCorrect="off"
             autoCapitalize="off"
@@ -279,9 +279,8 @@ export function GeminiKeyForm({ hasKey }: { hasKey: boolean }) {
             <strong>Create API key in new project</strong>.
           </li>
           <li>
-            Copy the <strong>whole</strong> key that appears. Google shows one of two shapes —{" "}
-            <code className="rounded bg-card px-1 py-0.5 text-xs">AIza…</code> or{" "}
-            <code className="rounded bg-card px-1 py-0.5 text-xs">AQ.Ab8…</code>. Either is fine.
+            Copy the <strong>whole</strong> key that appears — tap the copy button next to it so you
+            grab all of it with no spaces. Google&apos;s keys come in a few shapes and any of them work.
           </li>
           <li>Paste it in the box above and press Save. Done — Leo now thinks with your key.</li>
         </ol>
