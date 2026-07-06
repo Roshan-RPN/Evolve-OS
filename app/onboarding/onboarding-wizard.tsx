@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -186,7 +185,6 @@ function StepHero({
 }
 
 export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInput> }) {
-  const router = useRouter();
   const [stepIndex, setStepIndex] = useState(0);
   // Returning users see their saved answers and can edit them; submit re-upserts.
   const [data, setData] = useState<OnboardingInput>({ ...EMPTY, ...initial });
@@ -220,9 +218,12 @@ export function OnboardingWizard({ initial }: { initial?: Partial<OnboardingInpu
         setSaving(false);
         return;
       }
-      // Saved — navigate from the client so the redirect can't be dropped mid-transition.
-      router.replace("/");
-      router.refresh();
+      // Saved — hard navigation to home. A soft router.replace()+refresh() could
+      // stall mid-transition (button stuck on "Saving...", home never mounts),
+      // especially in the installed PWA. A full document load guarantees home
+      // renders fresh with the just-saved state. Keep `saving` true so the button
+      // stays disabled through the reload.
+      window.location.replace("/");
       return;
     }
     setStepIndex((i) => Math.min(i + 1, STEPS.length - 1));
