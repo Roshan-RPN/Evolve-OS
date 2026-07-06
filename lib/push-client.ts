@@ -15,7 +15,12 @@ export async function enablePushNotifications() {
   const permission = await Notification.requestPermission();
   if (permission !== "granted") throw new Error("Notification permission denied.");
 
-  const registration = await navigator.serviceWorker.register("/sw.js");
+  await navigator.serviceWorker.register("/sw.js");
+  // register() resolves before the worker is activated. Subscribing against a
+  // not-yet-active worker throws "no active Service Worker", so wait for the
+  // ready promise — it resolves with the registration once the SW controls the page.
+  const registration = await navigator.serviceWorker.ready;
+
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!publicKey) throw new Error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set.");
 
