@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   Sunrise,
+  Sun,
   MoonStar,
   Flame,
   CalendarClock,
@@ -9,7 +10,8 @@ import {
   CheckCircle2,
   Circle,
   ArrowRight,
-  Sparkles,
+  Trophy,
+  CircleDashed,
   HeartHandshake,
   Target,
 } from "lucide-react";
@@ -40,6 +42,7 @@ export default async function HomePage() {
 
   const { plan, journal } = await getTodayStatus();
   const morningDone = Boolean(plan?.locked);
+  const afternoonDone = Boolean(journal?.afternoon);
   const eveningDone = Boolean(journal?.evening);
 
   if (morningDone) await createCheckinsFromTodayPlan();
@@ -59,6 +62,7 @@ export default async function HomePage() {
   // "How you actually performed today" — honest completion of everything on today's plate
   const dayUnits = [
     morningDone,
+    afternoonDone,
     eveningDone,
     ...trackedHabits.map((h) => completedToday.has(h.id)),
     ...checkins.map((c) => Boolean(c.response)),
@@ -119,9 +123,9 @@ export default async function HomePage() {
 
           <div className="grid grid-cols-2 gap-2.5 lg:col-span-3">
             <Tile grad="grad-coral" shape="corner-cut" icon={<Flame className="size-5" />} value={habitsDone} suffix={`/${trackedHabits.length}`} label="Habits today" />
-            <Tile grad="grad-emerald" shape="corner-alt" icon={<Sparkles className="size-5" />} value={bestStreak} suffix="d" label="Best streak" />
+            <Tile grad="grad-emerald" shape="corner-alt" icon={<Trophy className="size-5" />} value={bestStreak} suffix="d" label="Best streak" />
             <Tile grad="grad-blue" shape="corner-cut" icon={<HeartHandshake className="size-5" />} value={analytics.avgSelfRespect ?? 0} decimals={1} label="Self-respect avg" />
-            <Tile grad="grad-indigo" shape="corner-alt" icon={<Sparkles className="size-5" />} value={openLoops} label="Open loops" />
+            <Tile grad="grad-indigo" shape="corner-alt" icon={<CircleDashed className="size-5" />} value={openLoops} label="Open loops" />
           </div>
 
           <div className="lg:col-span-4">
@@ -149,11 +153,14 @@ export default async function HomePage() {
                 style={{ width: `${Math.max(dayPct, 3)}%` }}
               />
             </div>
-            <div className="mt-2.5 grid grid-cols-2 gap-2">
+            <div className="mt-2.5 grid grid-cols-3 gap-2">
               <PulseStat label="Morning" ok={morningDone} />
+              <PulseStat label="Afternoon" ok={afternoonDone} />
+              <PulseStat label="Evening" ok={eveningDone} />
+            </div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
               <PulseStat label="Habits" text={`${habitsDone}/${trackedHabits.length}`} ok={trackedHabits.length > 0 && habitsDone === trackedHabits.length} />
               <PulseStat label="Check-ins" text={`${answeredCheckins}/${checkins.length}`} ok={checkins.length > 0 && pendingCheckins === 0} />
-              <PulseStat label="Evening" ok={eveningDone} />
             </div>
           </div>
 
@@ -249,36 +256,53 @@ export default async function HomePage() {
           <div className="flex flex-col gap-2.5 lg:col-span-4">
             <Link
               href="/morning"
-              className="group card-tint tint-coral corner-cut relative flex flex-1 items-center gap-3.5 overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="group solid-coral corner-cut relative flex flex-1 items-center gap-3.5 overflow-hidden p-4 text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
-              <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl grad-coral text-white shadow-md transition-transform group-hover:scale-105">
+              <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-white/20 ring-1 ring-white/25 transition-transform group-hover:scale-105">
                 <Sunrise className="size-5" />
               </span>
               <div className="relative min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Morning journal</p>
-                <p className="truncate font-display text-base font-semibold">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Morning journal</p>
+                <p className="truncate font-display text-base font-semibold text-white">
                   {morningDone ? "Planned & locked in" : "Plan the day"}
                 </p>
               </div>
-              {morningDone && <CheckCircle2 className="relative size-5 shrink-0 text-emerald" />}
-              <ArrowRight className="relative size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+              {morningDone && <CheckCircle2 className="relative size-5 shrink-0 text-white" />}
+              <ArrowRight className="relative size-4 shrink-0 text-white/70 transition-transform group-hover:translate-x-1 group-hover:text-white" />
+            </Link>
+
+            <Link
+              href="/afternoon"
+              className="group solid-bronze corner-cut relative flex flex-1 items-center gap-3.5 overflow-hidden p-4 text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
+            >
+              <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-white/20 ring-1 ring-white/25 transition-transform group-hover:scale-105">
+                <Sun className="size-5" />
+              </span>
+              <div className="relative min-w-0 flex-1">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Afternoon reset</p>
+                <p className="truncate font-display text-base font-semibold text-white">
+                  {afternoonDone ? "Recentered & refocused" : "Recenter the day"}
+                </p>
+              </div>
+              {afternoonDone && <CheckCircle2 className="relative size-5 shrink-0 text-white" />}
+              <ArrowRight className="relative size-4 shrink-0 text-white/70 transition-transform group-hover:translate-x-1 group-hover:text-white" />
             </Link>
 
             <Link
               href="/evening"
-              className="group card-tint tint-indigo corner-cut relative flex flex-1 items-center gap-3.5 overflow-hidden p-4 transition-all hover:-translate-y-0.5 hover:shadow-lg"
+              className="group corner-cut relative flex flex-1 items-center gap-3.5 overflow-hidden bg-[oklch(0.36_0.1_256)] p-4 text-white shadow-md transition-all hover:-translate-y-0.5 hover:shadow-lg"
             >
-              <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl grad-indigo text-white shadow-md transition-transform group-hover:scale-105">
+              <span className="relative grid size-12 shrink-0 place-items-center rounded-2xl bg-white/25 shadow-sm ring-1 ring-white/30 transition-transform group-hover:scale-105">
                 <MoonStar className="size-5" />
               </span>
               <div className="relative min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Evening reflection</p>
-                <p className="truncate font-display text-base font-semibold">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-white/70">Evening reflection</p>
+                <p className="truncate font-display text-base font-semibold text-white">
                   {eveningDone ? "Reflected & closed out" : morningDone ? "Reflect on today" : "Finish your morning first"}
                 </p>
               </div>
-              {eveningDone && <CheckCircle2 className="relative size-5 shrink-0 text-emerald" />}
-              <ArrowRight className="relative size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-1 group-hover:text-primary" />
+              {eveningDone && <CheckCircle2 className="relative size-5 shrink-0 text-white" />}
+              <ArrowRight className="relative size-4 shrink-0 text-white/70 transition-transform group-hover:translate-x-1 group-hover:text-white" />
             </Link>
           </div>
 

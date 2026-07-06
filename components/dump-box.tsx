@@ -25,21 +25,18 @@ export function DumpBox({ openLoops = 0 }: { openLoops?: number }) {
   }
 
   return (
-    <div className="card-elevated corner-cut relative flex h-full flex-col overflow-hidden p-3.5">
-      <div className="relative mb-2.5 flex items-center justify-between">
-        <h2 className="flex items-center gap-2 font-display text-base font-semibold">
-          <span className="grid size-7 place-items-center rounded-lg grad-blue text-white shadow-md">
-            <Sparkles className="size-4" />
-          </span>
-          Untangle a thought
-        </h2>
-        {openLoops > 0 && (
-          <span className="chip bg-primary/15 text-primary">
-            {openLoops} open loop{openLoops === 1 ? "" : "s"}
-          </span>
-        )}
-      </div>
-      <div className="relative flex flex-col gap-2 pb-3">
+    <div className="card-elevated corner-cut relative flex h-full flex-col items-center justify-center overflow-hidden p-4 text-center">
+      {openLoops > 0 && (
+        <span className="chip absolute right-3 top-3 bg-primary/15 text-primary">
+          {openLoops} open loop{openLoops === 1 ? "" : "s"}
+        </span>
+      )}
+      <span className="grid size-12 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+        <Sparkles className="size-5" />
+      </span>
+      <h2 className="mt-3 font-display text-base font-semibold">Untangle a thought</h2>
+      <p className="mt-1 text-xs text-muted-foreground">Name what&apos;s tangling you — Leo untangles it.</p>
+      <div className="mt-3.5 flex w-full flex-col gap-2">
         <input
           value={value}
           onChange={(e) => setValue(e.target.value)}
@@ -49,13 +46,13 @@ export function DumpBox({ openLoops = 0 }: { openLoops?: number }) {
               submit();
             }
           }}
-          placeholder="What's tangling you up right now?"
-          className="w-full rounded-2xl border border-border bg-background/70 px-4 py-2.5 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
+          placeholder="What's on your mind?"
+          className="w-full rounded-2xl border border-border bg-background/70 px-4 py-2.5 text-center text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/60 focus:ring-2 focus:ring-primary/20"
         />
         <button
           onClick={submit}
           disabled={!value.trim() || pending}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-2xl grad-blue px-5 py-2.5 text-sm font-semibold text-white shadow-lg transition-transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-60"
+          className="btn-solid-emerald inline-flex w-full items-center justify-center gap-2 rounded-2xl px-5 py-2.5 text-sm font-semibold text-white transition-transform hover:-translate-y-0.5 active:translate-y-0"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
           {pending ? "Untangling…" : "Untangle it"}

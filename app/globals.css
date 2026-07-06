@@ -227,6 +227,36 @@
   .solid-slate   { background-color: oklch(0.48 0.035 256); }
   .solid-forest  { background-color: oklch(0.52 0.11 160); }
 
+  /* Premium primary button — solid greenish-blue, glassy inset + soft glow (no gradient) */
+  .btn-blue-pro {
+    background-color: oklch(0.56 0.11 226);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.28),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+      0 12px 24px -10px oklch(0.5 0.09 226 / 0.55);
+  }
+  .btn-blue-pro:hover {
+    background-color: oklch(0.6 0.11 226);
+    box-shadow:
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.32),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 16px 30px -10px oklch(0.5 0.09 226 / 0.65);
+  }
+
+  /* Bright solid emerald button — flat vivid colour to match the KPI tiles, soft glow (no gradient) */
+  .btn-solid-emerald {
+    background-color: oklch(0.66 0.16 158);
+    box-shadow: 0 10px 22px -10px oklch(0.55 0.15 158 / 0.6);
+  }
+  .btn-solid-emerald:hover {
+    background-color: oklch(0.7 0.16 158);
+    box-shadow: 0 14px 28px -10px oklch(0.55 0.15 158 / 0.7);
+  }
+  /* Keep it reading as a solid colour even while disabled (empty input) */
+  .btn-solid-emerald:disabled {
+    opacity: 0.85;
+  }
+
   .text-gradient {
     background: linear-gradient(120deg, var(--blue), var(--indigo) 50%, var(--teal));
     -webkit-background-clip: text;

@@ -85,7 +85,7 @@ function StepHero({
   sub: string;
 }) {
   return (
-    <div className={`corner-cut relative overflow-hidden ${grad} p-5 text-white`}>
+    <div className={`corner-cut relative overflow-hidden ${grad} p-4 text-white`}>
       <div className="relative flex items-center gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-2xl bg-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]">
           <Icon className="size-5" />
@@ -178,7 +178,7 @@ export function MorningWizard() {
   return (
     <div className="relative mx-auto flex min-h-dvh w-full max-w-xl flex-col gap-4 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(0.9rem+env(safe-area-inset-top))] lg:justify-start lg:gap-6 lg:p-6 lg:pt-10">
       {/* header — step context + close, always in reach */}
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
@@ -204,7 +204,7 @@ export function MorningWizard() {
           <Card className="shadow-xl">
             <CardContent className="space-y-5 pt-6">
               {stepIndex === 0 && (
-                <div className="space-y-4">
+                <div className="space-y-3">
                   <StepHero
                     grad="solid-coral"
                     icon={Sunrise}
@@ -213,11 +213,11 @@ export function MorningWizard() {
                   />
 
                   <Textarea
-                    rows={4}
+                    rows={2}
                     value={data.affirmations}
                     onChange={(e) => setData({ ...data, affirmations: e.target.value })}
                     placeholder="I am the kind of person who…"
-                    className="min-h-28 font-display text-base font-semibold leading-relaxed"
+                    className="min-h-16 font-display text-base font-semibold leading-relaxed"
                   />
 
                   {/* One-tap sparks — kill the blank page */}
@@ -234,14 +234,14 @@ export function MorningWizard() {
                               : s,
                           })
                         }
-                        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2.5 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
+                        className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-muted/50 px-2.5 py-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:border-primary/40 hover:bg-primary/5 hover:text-foreground"
                       >
                         <Plus className="size-3" /> {s}
                       </button>
                     ))}
                   </div>
 
-                  <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-4">
+                  <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-3.5">
                     <div className="flex items-baseline justify-between gap-2">
                       <Label>How true does this feel right now?</Label>
                       <span className="font-display text-lg font-bold tabular-nums text-primary">

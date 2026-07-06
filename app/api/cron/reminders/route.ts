@@ -8,6 +8,7 @@ import { todayISO } from "@/lib/date";
 // Hit by an external cron scheduler (e.g. cron-job.org) at set times:
 //   /api/cron/reminders?type=morning&secret=...   ~7am
 //   /api/cron/reminders?type=checkin&secret=...    a few times midday
+//   /api/cron/reminders?type=afternoon&secret=...  ~2pm (midday reset journal)
 //   /api/cron/reminders?type=evening&secret=...     ~9pm
 //   /api/cron/reminders?type=weekly-audit&secret=... Sundays
 // Runs without a session cookie, so it fans out over every profile and
@@ -40,6 +41,25 @@ export async function GET(request: NextRequest) {
           title: "Morning journal",
           body: "Start your day with affirmations, priorities, and a plan.",
           url: "/morning",
+        });
+      }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  if (type === "afternoon") {
+    for (const userId of userIds) {
+      const { data: journal } = await supabase
+        .from("journal_entries")
+        .select("afternoon")
+        .eq("user_id", userId)
+        .eq("date", date)
+        .maybeSingle();
+      if (!journal?.afternoon) {
+        await sendPushToUser(userId, {
+          title: "Midday reset",
+          body: "Half the day's still yours. Check where your priorities stand and refocus.",
+          url: "/afternoon",
         });
       }
     }

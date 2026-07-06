@@ -88,6 +88,52 @@ End with one line connecting it directly to today for this specific user. No gen
   return generateText({ system, prompt, temperature: 0.9 });
 }
 
+export async function middayNudge({
+  identity,
+  profile,
+  onTrackScore,
+  energy,
+  priorityProgress,
+  drift,
+  honestLine,
+  refocus,
+  checkinsSummary,
+}: {
+  identity: Identity;
+  profile: Profile;
+  onTrackScore: number;
+  energy: string;
+  priorityProgress: string;
+  drift: string;
+  honestLine: string;
+  refocus: string;
+  checkinsSummary: string;
+}) {
+  const system = coachPersona(identity, profile);
+  const prompt = `It's the middle of the user's day and they just did a quick midday reset.
+
+How on-track they feel right now (1-10): ${onTrackScore}
+Energy right now: ${energy || "not said"}
+
+Where today's priorities actually stand:
+${priorityProgress || "(no locked priorities today)"}
+
+What pulled them off track: "${drift || "(left blank)"}"
+Their one honest line about the morning: "${honestLine || "(left blank)"}"
+The one thing they want to nail before evening: "${refocus || "(left blank)"}"
+
+What their mid-day check-ins say so far:
+${checkinsSummary}
+
+Write a short "midday recalibration" — not a pep talk, a course-correction. Half the day is still theirs.
+If a priority is stalled or untouched, name it and point at the very next physical step to unstick it.
+If the drift they named is a known pattern of theirs, say so plainly. If they're actually on track, confirm
+it in one line and protect the momentum instead of inventing a problem. Anchor everything on the ONE refocus
+they chose — make the rest of the day about landing that. End with one concrete move for the next 30 minutes.
+90-140 words, no bullet points, direct spoken tone, second person.`;
+  return generateText({ system, prompt, temperature: 0.6 });
+}
+
 export async function moodBoostStory({
   identity,
   profile,

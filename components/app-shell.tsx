@@ -10,6 +10,7 @@ import {
   Flame,
   BarChart3,
   Sunrise,
+  Sun,
   MoonStar,
   Sparkles,
   Target,
@@ -42,6 +43,7 @@ const DESK_EXTRA: NavItem[] = [
 
 const JOURNAL: NavItem[] = [
   { href: "/morning", label: "Morning", icon: Sunrise, grad: "grad-coral" },
+  { href: "/afternoon", label: "Afternoon", icon: Sun, grad: "grad-amber" },
   { href: "/evening", label: "Evening", icon: MoonStar, grad: "grad-dusk" },
 ];
 
@@ -120,7 +122,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <NavGroup items={[...PRIMARY, ...DESK_EXTRA]} pathname={pathname} collapsed={collapsed} />
 
           {!collapsed && (
-            <p className="mt-4 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+            <p className="mb-1 mt-3 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
               Journal
             </p>
           )}
@@ -227,7 +229,7 @@ function NavGroup({
             key={item.href}
             href={item.href}
             title={collapsed ? item.label : undefined}
-            className={`group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors ${
+            className={`group relative flex items-center gap-3 rounded-2xl px-3 py-2 text-sm font-medium transition-colors ${
               collapsed ? "justify-center" : ""
             } ${
               active

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans, Bricolage_Grotesque, Geist_Mono, Sora } from "next/font/google";
+import { Plus_Jakarta_Sans, Bricolage_Grotesque, Geist_Mono, Space_Grotesk } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/components/theme-provider";
 import { APP_NAME, APP_TAGLINE } from "@/lib/brand";
@@ -23,10 +23,10 @@ const geistMono = Geist_Mono({
 });
 
 // Premium wordmark-only face — used solely for the "Evolve OS" brand mark.
-const wordmark = Sora({
+const wordmark = Space_Grotesk({
   variable: "--font-wordmark",
   subsets: ["latin"],
-  weight: ["600", "700", "800"],
+  weight: ["500", "600", "700"],
   display: "swap",
 });
 
