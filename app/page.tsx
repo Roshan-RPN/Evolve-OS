@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Circle,
+  XCircle,
   ArrowRight,
   Trophy,
   CircleDashed,
@@ -183,27 +184,24 @@ export default async function HomePage() {
             ) : (
               <div className="space-y-2">
                 {/* mobile: full list · desktop keeps the 4-row bento cap */}
-                {checkins.map((c, i) => (
-                  <Link
-                    key={c.id}
-                    href={`/checkin/${c.id}`}
-                    className={`flex items-center justify-between rounded-xl bg-muted/60 px-3 py-2 text-sm transition-colors hover:bg-muted ${
-                      i >= 4 ? "lg:hidden" : ""
-                    }`}
-                  >
-                    <span className="flex min-w-0 flex-1 items-center gap-2.5">
-                      {c.response ? (
-                        <CheckCircle2 className="size-4 shrink-0 text-emerald" />
-                      ) : (
-                        <Circle className="size-4 shrink-0 text-muted-foreground" />
-                      )}
-                      <span className="truncate">{c.prompt}</span>
-                    </span>
-                    <span className="ml-2 shrink-0 text-xs font-medium capitalize text-muted-foreground">
-                      {c.response ?? "pending"}
-                    </span>
-                  </Link>
-                ))}
+                {checkins.map((c, i) => {
+                  const s = checkinStatus(c.response as string | null);
+                  const Icon = s.icon;
+                  return (
+                    <Link
+                      key={c.id}
+                      href={`/checkin/${c.id}`}
+                      className={`flex items-start gap-2.5 rounded-xl bg-muted/60 px-3 py-2 text-sm transition-colors hover:bg-muted ${
+                        i >= 4 ? "lg:hidden" : ""
+                      }`}
+                    >
+                      <Icon className={`mt-0.5 size-4 shrink-0 ${s.color}`} />
+                      {/* full prompt, wraps instead of truncating so nothing is cut off */}
+                      <span className="min-w-0 flex-1 leading-snug">{c.prompt}</span>
+                      <span className={`ml-1 shrink-0 text-xs font-semibold ${s.color}`}>{s.label}</span>
+                    </Link>
+                  );
+                })}
                 {checkins.length > 4 && (
                   <p className="hidden px-1 text-xs font-medium text-muted-foreground lg:block">
                     +{checkins.length - 4} more through the day
@@ -402,6 +400,20 @@ function MiniCalendar() {
       </div>
     </Panel>
   );
+}
+
+// Check-in tile status: done = green, partial = yellow, skipped = red, else pending.
+function checkinStatus(response: string | null) {
+  switch (response) {
+    case "done":
+      return { icon: CheckCircle2, color: "text-emerald", label: "Done" };
+    case "partial":
+      return { icon: CircleDashed, color: "text-[oklch(0.72_0.13_85)]", label: "Partial" };
+    case "skipped":
+      return { icon: XCircle, color: "text-[var(--red)]", label: "Not done" };
+    default:
+      return { icon: Circle, color: "text-muted-foreground", label: "Pending" };
+  }
 }
 
 function PulseStat({ label, ok, text }: { label: string; ok: boolean; text?: string }) {

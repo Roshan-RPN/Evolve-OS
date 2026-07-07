@@ -40,8 +40,15 @@ export function CheckinCard({ checkin }: { checkin: Checkin }) {
     if (!response) return;
     setSubmitting(true);
     const res = await respondToCheckin({ id: checkin.id, response, mood });
-    setStory(res.followUpStory);
-    setSubmitting(false);
+    // Good mood → no follow-up story → go straight home so the entry is saved
+    // and the check-in tile there updates. Otherwise show the boost story first.
+    if (res.followUpStory) {
+      setStory(res.followUpStory);
+      setSubmitting(false);
+    } else {
+      router.push("/");
+      router.refresh();
+    }
   }
 
   return (
@@ -88,7 +95,7 @@ export function CheckinCard({ checkin }: { checkin: Checkin }) {
           {story && (
             <div className="space-y-4">
               <p className="whitespace-pre-wrap text-sm leading-relaxed">{story}</p>
-              <Button className="w-full" onClick={() => router.push("/")}>
+              <Button className="w-full" onClick={() => { router.push("/"); router.refresh(); }}>
                 Back to it
               </Button>
             </div>
