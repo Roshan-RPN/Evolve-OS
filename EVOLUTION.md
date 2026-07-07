@@ -196,7 +196,7 @@ Two follow-up commits *(7 Jul)* on the midday-reset "Where they stand" step:
 
 ## 11. Leo follow-up on every journal
 
-**`PENDING` · Ask-Leo follow-up after afternoon + evening** *(7 Jul)*
+**`8b6ea42` · Ask-Leo follow-up after afternoon + evening** *(7 Jul)*
 - Morning already let you keep questioning Leo under his plan read. Extended the
   same reusable `LeoFollowup` thread to the other two journals:
   - **Afternoon** — drops under the midday recalibration nudge.
@@ -234,7 +234,7 @@ check-in "later" constraint.
 
 ## Where it stands now (latest)
 
-Newest commit: **`PENDING`** — Leo follow-up thread now available under the
+Newest commit: **`8b6ea42`** — Leo follow-up thread now available under the
 afternoon and evening journal reads (morning already had it).
 
 **Working:** full daily loop (morning → midday reset → evening), habits, goals,
