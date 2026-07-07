@@ -17,6 +17,7 @@ import {
   ChevronDown,
   Upload,
   Target,
+  ZoomIn,
 } from "lucide-react";
 import {
   addManifestation,
@@ -61,6 +62,19 @@ function prettyDate(iso: string) {
   return new Date(iso + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+// Fisher–Yates — fresh random order each call. Used to shuffle the "Why I'm
+// doing this" cards on every page load so the user sees variety.
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const PAGE_SIZE = 6; // items shown before "Load more" in each collapsible section
+
 export function ManifestationBoard({ data }: { data: ManifestationData }) {
   const [entries, setEntries] = useState<ManifestEntry[]>(data.entries);
   const [sessions, setSessions] = useState<VisionSession[]>(data.sessions);
@@ -77,9 +91,37 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
   const [goalId, setGoalId] = useState("");
   const [kind, setKind] = useState<ManifestKind>("vision");
   const [ritualOpen, setRitualOpen] = useState(false);
+  const [zoomOpen, setZoomOpen] = useState(false);
+  const [whyExpanded, setWhyExpanded] = useState(false);
+  const [expandedKinds, setExpandedKinds] = useState<Record<ManifestKind, boolean>>({
+    vision: false,
+    proof: false,
+    affirmation: false,
+  });
+  // Random order fixed once per page load — reshuffles on refresh so the 6 shown
+  // vary. Stored as ids so later image uploads still reflect (order stays put).
+  const [whyOrder] = useState<string[]>(() => shuffle(data.goalImages.map((g) => g.goal_id)));
   const [, startTransition] = useTransition();
 
   const affirmations = entries.filter((e) => e.kind === "affirmation").map((e) => e.caption);
+
+  // Lock page scroll + close on Escape while the zoom lightbox is open.
+  useEffect(() => {
+    if (!zoomOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setZoomOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prev;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [zoomOpen]);
+
+  const orderedGoalImages = whyOrder
+    .map((id) => goalImages.find((g) => g.goal_id === id))
+    .filter((g): g is GoalImage => !!g);
+  const shownWhy = whyExpanded ? orderedGoalImages : orderedGoalImages.slice(0, PAGE_SIZE);
 
   async function onHeroFile(file: File | undefined) {
     if (!file) return;
@@ -294,8 +336,12 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
                 <img
                   src={boardUrl}
                   alt="Your vision board"
-                  className="block h-auto max-h-[26rem] w-auto max-w-full rounded-2xl object-contain"
+                  onClick={() => setZoomOpen(true)}
+                  className="block h-auto max-h-[26rem] w-auto max-w-full cursor-zoom-in rounded-2xl object-contain"
                 />
+                <span className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
+                  <ZoomIn className="size-3.5" /> Tap to enlarge
+                </span>
                 <label className="absolute bottom-4 right-4 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
                   {heroBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
                   Replace
@@ -344,7 +390,7 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {goalImages.map((g) => (
+            {shownWhy.map((g) => (
               <div key={g.goal_id} className="card-elevated relative overflow-hidden">
                 {g.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
@@ -374,6 +420,14 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
               </div>
             ))}
           </div>
+          {!whyExpanded && orderedGoalImages.length > PAGE_SIZE && (
+            <button
+              onClick={() => setWhyExpanded(true)}
+              className="mx-auto flex items-center gap-1.5 rounded-full border border-primary/30 bg-card px-5 py-2 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-primary/10"
+            >
+              <ChevronDown className="size-4" /> Load more ({orderedGoalImages.length - PAGE_SIZE})
+            </button>
+          )}
         </section>
       )}
 
@@ -427,6 +481,8 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
         KINDS.map((k) => {
           const kindEntries = entries.filter((e) => e.kind === k.key);
           if (kindEntries.length === 0) return null;
+          const expanded = expandedKinds[k.key];
+          const shown = expanded ? kindEntries : kindEntries.slice(0, PAGE_SIZE);
           return (
             <section key={k.key} className="space-y-3">
               <div className="flex items-baseline justify-between gap-2">
@@ -441,7 +497,7 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
               </div>
               <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4">
                 <AnimatePresence initial={false}>
-                  {kindEntries.map((e, i) => (
+                  {shown.map((e, i) => (
                     <motion.div
                       key={e.id}
                       id={`m-${e.id}`}
@@ -482,6 +538,14 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
                   ))}
                 </AnimatePresence>
               </div>
+              {!expanded && kindEntries.length > PAGE_SIZE && (
+                <button
+                  onClick={() => setExpandedKinds((prev) => ({ ...prev, [k.key]: true }))}
+                  className="mx-auto flex items-center gap-1.5 rounded-full border border-primary/30 bg-card px-5 py-2 text-sm font-semibold text-primary shadow-sm transition-colors hover:bg-primary/10"
+                >
+                  <ChevronDown className="size-4" /> Load more ({kindEntries.length - PAGE_SIZE})
+                </button>
+              )}
             </section>
           );
         })
@@ -514,6 +578,37 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
           </div>
         </section>
       )}
+
+      {/* Full-screen zoom of the vision board — tap anywhere / X to close */}
+      <AnimatePresence>
+        {zoomOpen && boardUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setZoomOpen(false)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4 backdrop-blur-sm"
+          >
+            <button
+              onClick={() => setZoomOpen(false)}
+              aria-label="Close"
+              className="absolute right-5 top-5 grid size-9 place-items-center rounded-full border border-white/20 bg-white/10 text-white/80 backdrop-blur transition-colors hover:text-white"
+            >
+              <X className="size-[18px]" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <motion.img
+              initial={{ scale: 0.92 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.92 }}
+              src={boardUrl}
+              alt="Your vision board"
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-full max-w-full rounded-2xl object-contain shadow-2xl"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {ritualOpen && (
