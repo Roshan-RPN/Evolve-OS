@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Trash2, CalendarClock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Sparkles, Loader2 } from "lucide-react";
-import { saveSchedule, type ScheduleItem } from "@/lib/actions/schedule";
+import { Plus, Trash2, CalendarClock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Sparkles, Loader2, Wand2 } from "lucide-react";
+import { saveSchedule, planDayWithLeo, type ScheduleItem } from "@/lib/actions/schedule";
 import { critiqueDraftPlan } from "@/lib/actions/morning";
+import { LeoFollowup } from "@/components/leo-followup";
 import { TimeWheel } from "@/components/time-wheel";
 import { shiftISO } from "@/lib/date";
 
@@ -61,7 +62,31 @@ export function ScheduleBoard({
   const [leoRead, setLeoRead] = useState<string | null>(null);
   const [leoAsking, setLeoAsking] = useState(false);
   const [leoErr, setLeoErr] = useState(false);
+  const [leoPlanning, setLeoPlanning] = useState(false);
+  const [leoPlanErr, setLeoPlanErr] = useState(false);
   const [, startTransition] = useTransition();
+
+  // Leo builds a realistic day from the weekly plan + monthly goals + profile,
+  // then merges its blocks into whatever's already here (no duplicates).
+  async function planWithLeo() {
+    setLeoPlanning(true);
+    setLeoPlanErr(false);
+    try {
+      const blocks = await planDayWithLeo(date);
+      if (!blocks.length) {
+        setLeoPlanErr(true);
+        return;
+      }
+      const have = new Set(items.map((i) => i.block.trim().toLowerCase()));
+      const merged = [...items, ...blocks.filter((b) => !have.has(b.block.trim().toLowerCase()))];
+      persist(merged.slice(0, MAX_BLOCKS));
+      setWarning(null);
+    } catch {
+      setLeoPlanErr(true);
+    } finally {
+      setLeoPlanning(false);
+    }
+  }
 
   async function askLeo() {
     setLeoAsking(true);
@@ -272,6 +297,30 @@ export function ScheduleBoard({
       </div>
       )}
 
+      {/* Plan with Leo — grounded in this week's plan, the month's goals + your profile */}
+      {!readOnly && (
+        <div className="space-y-1.5">
+          <button
+            onClick={planWithLeo}
+            disabled={leoPlanning || atCap}
+            className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-50"
+          >
+            {leoPlanning ? <Loader2 className="size-3.5 animate-spin" /> : <Wand2 className="size-3.5" />}
+            {leoPlanning
+              ? "Leo's building your day…"
+              : items.length
+                ? "Fill the gaps with Leo"
+                : "Plan my day with Leo"}
+          </button>
+          <p className="text-[11px] text-muted-foreground">
+            Built from this week&apos;s plan, the month&apos;s goals and your profile — not a random template. Every block stays editable.
+          </p>
+          {leoPlanErr && (
+            <p className="text-[11px] text-muted-foreground">Leo couldn&apos;t build it right now. Try again, or add blocks by hand.</p>
+          )}
+        </div>
+      )}
+
       {/* Timeline */}
       {items.length === 0 ? (
         <div className="card-surface rounded-3xl p-10 text-center">
@@ -344,6 +393,7 @@ export function ScheduleBoard({
               {leoRead}
             </p>
           )}
+          {leoRead && <LeoFollowup topic="today's schedule and whether it's realistic" seed={leoRead} />}
         </section>
       )}
     </div>

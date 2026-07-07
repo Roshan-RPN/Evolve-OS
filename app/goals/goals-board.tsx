@@ -46,6 +46,7 @@ import {
   type WeekTask,
   type WeeklyPlan,
 } from "@/lib/actions/goals";
+import { LeoFollowup } from "@/components/leo-followup";
 
 export type GoalsBoardData = {
   view: GoalsView;
@@ -311,6 +312,12 @@ function AskLeoVision({ level }: { level: "three_year" | "yearly" }) {
         <p className="whitespace-pre-line rounded-2xl bg-card/70 p-3 text-sm leading-relaxed text-foreground/90">
           {text}
         </p>
+      )}
+      {text && (
+        <LeoFollowup
+          topic={level === "three_year" ? "their 3-year vision and its goals" : "their 1-year vision and its goals"}
+          seed={text}
+        />
       )}
     </section>
   );
@@ -844,6 +851,7 @@ function MonthCard({
                   {outlook}
                 </p>
               )}
+              {outlook && <LeoFollowup topic={`${cell.fullLabel} and whether they'll hit it`} seed={outlook} />}
             </div>
           )}
         </>
@@ -905,6 +913,7 @@ function WeeklyView({ plan }: { plan: WeeklyPlan }) {
             period={plan.period}
             day={d}
             readOnly={plan.readOnly}
+            locked={d.isPast}
             onReport={reportDay}
           />
         ))}
@@ -967,6 +976,7 @@ function WeeklyView({ plan }: { plan: WeeklyPlan }) {
               {verdict}
             </p>
           )}
+          {verdict && <LeoFollowup topic="this week's plan and how it's landing" seed={verdict} />}
           {plan.readOnly && !verdict && (
             <p className="text-[11px] text-muted-foreground">This week is locked. Run an evaluation to see how it landed.</p>
           )}
@@ -979,12 +989,14 @@ function WeeklyView({ plan }: { plan: WeeklyPlan }) {
 /** "Suggest with Leo" for the week — proposes tasks, drops the ones you pick onto a chosen day. */
 function WeekSuggest({ plan }: { plan: WeeklyPlan }) {
   const router = useRouter();
-  // Default target: today if it has room, else the first day with a free slot, else day 0.
-  const firstOpen = plan.days.find((d) => d.tasks.length < MAX_TASKS_PER_DAY);
+  // Only today and days still ahead can be planned into — finished days are locked.
+  const planDays = plan.days.filter((d) => !d.isPast);
+  // Default target: today if it has room, else the first future day with a free slot.
+  const firstOpen = planDays.find((d) => d.tasks.length < MAX_TASKS_PER_DAY);
   const defaultDay =
-    plan.days.find((d) => d.isToday && d.tasks.length < MAX_TASKS_PER_DAY)?.dayIndex ??
+    planDays.find((d) => d.isToday && d.tasks.length < MAX_TASKS_PER_DAY)?.dayIndex ??
     firstOpen?.dayIndex ??
-    plan.days[0]?.dayIndex ??
+    planDays[0]?.dayIndex ??
     0;
   const [target, setTarget] = useState(defaultDay);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -1040,7 +1052,7 @@ function WeekSuggest({ plan }: { plan: WeeklyPlan }) {
             onChange={(e) => setTarget(Number(e.target.value))}
             className="rounded-lg border border-border/60 bg-card px-2 py-1 font-semibold outline-none ring-primary/40 focus:ring-2"
           >
-            {plan.days.map((d) => (
+            {planDays.map((d) => (
               <option key={d.dayIndex} value={d.dayIndex}>
                 {d.weekday}
                 {d.isToday ? " (today)" : ""} · {d.tasks.length}/{MAX_TASKS_PER_DAY}
@@ -1137,11 +1149,15 @@ function DayBox({
   period,
   day,
   readOnly,
+  locked,
   onReport,
 }: {
   period: string;
   day: WeekDay;
   readOnly: boolean;
+  // A day that has already finished in the live week: can't plan into it, but
+  // ticking what you actually did still works.
+  locked: boolean;
   onReport: (dayIndex: number, planned: number, done: number) => void;
 }) {
   const [tasks, setTasks] = useState<WeekTask[]>(day.tasks);
@@ -1229,7 +1245,13 @@ function DayBox({
         />
       ))}
 
-      {!readOnly && tasks.length < MAX_TASKS_PER_DAY && (
+      {!readOnly && locked && (
+        <span className="rounded-lg bg-muted/40 px-2 py-1 text-[10px] font-medium text-muted-foreground">
+          Day passed — planning locked. Tick what you actually did.
+        </span>
+      )}
+
+      {!readOnly && !locked && tasks.length < MAX_TASKS_PER_DAY && (
         <div className="flex flex-col gap-1.5 rounded-xl border border-dashed border-border/60 p-2">
           <input
             value={goalDraft}
@@ -1257,7 +1279,7 @@ function DayBox({
           </div>
         </div>
       )}
-      {!readOnly && tasks.length >= MAX_TASKS_PER_DAY && (
+      {!readOnly && !locked && tasks.length >= MAX_TASKS_PER_DAY && (
         <span className="text-[10px] text-muted-foreground">Day full — {MAX_TASKS_PER_DAY} tasks max.</span>
       )}
     </div>

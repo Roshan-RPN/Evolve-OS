@@ -24,6 +24,8 @@ export type EveningInput = {
   first_move: string;
   vision_felt_vividness: number;
   vision_felt_note: string;
+  gratitudes: string[];
+  gratitude_felt_most: string;
 };
 
 async function getTodayCheckinsSummary(userId: string, date: string) {
@@ -63,6 +65,8 @@ export async function submitEveningEntry(input: EveningInput) {
     first_move: input.first_move,
     vision_felt_vividness: input.vision_felt_vividness,
     vision_felt_note: input.vision_felt_note,
+    gratitudes: input.gratitudes.filter((g) => g.trim()),
+    gratitude_felt_most: input.gratitude_felt_most,
   };
 
   const [realization, manifestation] = await Promise.all([

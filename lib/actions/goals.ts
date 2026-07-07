@@ -167,6 +167,7 @@ export type WeekDay = {
   weekday: string;
   tasks: WeekTask[];
   isToday: boolean;
+  isPast: boolean;
 };
 
 // "use server" files may only export async functions — keep this cap un-exported
@@ -234,6 +235,8 @@ export async function getWeeklyPlan(weekArg?: string): Promise<WeeklyPlan> {
       done: g.done,
     })),
     isToday: s.date === today,
+    // A day already finished (only meaningful in the live week) can't be planned into.
+    isPast: today !== "" && s.date < today,
   }));
 
   // Month this week feeds — anchor on the ISO week's Thursday.

@@ -197,9 +197,10 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
       {/* Vision-board hero image — the one board the user already made */}
       <section className="space-y-2">
         {boardUrl ? (
-          <div className="card-elevated relative overflow-hidden">
+          <div className="card-elevated relative overflow-hidden bg-muted/20">
+            {/* object-contain + capped height: whole image stays visible, never cropped, board never gets huge */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={boardUrl} alt="Your vision board" className="max-h-[28rem] w-full object-cover" />
+            <img src={boardUrl} alt="Your vision board" className="mx-auto block max-h-[22rem] w-full object-contain" />
             <label className="absolute bottom-3 right-3 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
               {heroBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
               Replace
@@ -632,7 +633,7 @@ function VisionRitual({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 grad-night backdrop-blur-sm"
+      className="fixed inset-0 z-50 grad-vision backdrop-blur-sm"
     >
       <div className="absolute inset-0 overflow-y-auto">
         <div className="mx-auto flex min-h-full w-full max-w-lg flex-col justify-center gap-5 p-6">

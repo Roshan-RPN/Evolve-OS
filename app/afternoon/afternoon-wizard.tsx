@@ -27,6 +27,7 @@ import {
   CircleDashed,
   CircleSlash,
   Circle,
+  Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CloseButton } from "@/components/close-button";
@@ -57,6 +58,27 @@ const STATUSES: {
   { key: "stalled", label: "Stalled", icon: CircleSlash, cls: "text-[var(--coral)] border-[var(--coral)]/50 bg-[var(--coral)]/10" },
   { key: "untouched", label: "Not yet", icon: Circle, cls: "text-muted-foreground border-border bg-muted/40" },
 ];
+
+// Tap-to-start openers — drop the first words, finish in your own.
+const DRIFT_STARTERS = ["I lost time to ", "I kept avoiding ", "I got pulled into ", "The morning went sideways when "];
+const REFOCUS_STARTERS = ["Before evening, I will ", "The one thing left is ", "I'll reset by "];
+
+function StarterChips({ starters, onPick }: { starters: string[]; onPick: (s: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {starters.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onPick(s)}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-primary/40 bg-primary/5 px-2.5 py-0.5 text-[11px] font-medium text-primary/90 transition-colors hover:bg-primary/10"
+        >
+          <Plus className="size-3" /> {s.trim()}…
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function onTrackVerdict(score: number) {
   if (score <= 3) return { text: "Day's slipping. Good you caught it now — half of it's still yours.", cls: "text-[var(--coral)]" };
@@ -305,8 +327,14 @@ export function AfternoonWizard({
                     rows={3}
                     value={data.drift}
                     onChange={(e) => setData({ ...data, drift: e.target.value })}
-                    placeholder="The scroll hole, the meeting that ran long, the dread task I dodged…"
+                    placeholder="e.g. I fell into the scroll hole after lunch and dodged the report."
                     className="font-display text-base font-semibold leading-relaxed"
+                  />
+                  <StarterChips
+                    starters={DRIFT_STARTERS}
+                    onPick={(s) =>
+                      setData({ ...data, drift: data.drift.trim() ? `${data.drift.replace(/\s+$/, "")} ${s}` : s })
+                    }
                   />
                   <div className="card-elevated space-y-2 p-4">
                     <Label className="flex items-center gap-1.5 text-sm font-semibold">
@@ -334,8 +362,14 @@ export function AfternoonWizard({
                     rows={3}
                     value={data.refocus}
                     onChange={(e) => setData({ ...data, refocus: e.target.value })}
-                    placeholder="Before evening, I will…"
+                    placeholder="e.g. Before evening, I will finish the report's first section."
                     className="min-h-28 font-display text-base font-semibold leading-relaxed"
+                  />
+                  <StarterChips
+                    starters={REFOCUS_STARTERS}
+                    onPick={(s) =>
+                      setData({ ...data, refocus: data.refocus.trim() ? `${data.refocus.replace(/\s+$/, "")} ${s}` : s })
+                    }
                   />
                 </div>
               )}

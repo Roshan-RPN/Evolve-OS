@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -26,6 +27,8 @@ import {
   BatteryLow,
   Trophy,
   Rocket,
+  Heart,
+  Plus,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CloseButton } from "@/components/close-button";
@@ -42,6 +45,8 @@ const EMPTY: EveningInput = {
   first_move: "",
   vision_felt_vividness: 6,
   vision_felt_note: "",
+  gratitudes: ["", "", "", "", ""],
+  gratitude_felt_most: "",
 };
 
 const STEP_TITLES = [
@@ -53,8 +58,30 @@ const STEP_TITLES = [
   "One Win / Proof",
   "Tomorrow's 1st Move",
   "Feel It — Vision",
+  "5 Gratitudes",
   "Review",
 ];
+
+// Tap-to-start openers — drop the first words, finish in your own.
+const STORY_STARTERS = ["Today I finally ", "The moment that stuck was ", "I felt proud when ", "The best part was "];
+const FIRST_MOVE_STARTERS = ["Before I touch my phone, I'll ", "First thing tomorrow, I will ", "I'll start by "];
+
+function StarterChips({ starters, onPick }: { starters: string[]; onPick: (s: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {starters.map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onPick(s)}
+          className="inline-flex items-center gap-1 rounded-full border border-dashed border-primary/40 bg-primary/5 px-2.5 py-0.5 text-[11px] font-medium text-primary/90 transition-colors hover:bg-primary/10"
+        >
+          <Plus className="size-3" /> {s.trim()}…
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function selfRespectVerdict(score: number) {
   if (score <= 3) return { text: "Rough one. Name it, don't dress it up — tomorrow resets.", cls: "text-muted-foreground" };
@@ -174,15 +201,24 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-night"
                     icon={MoonStar}
-                    title="TODAY'S HEADLINE"
-                    sub="If today were one scene in your story — which moment makes the cut?"
+                    title="TODAY'S BEST MOMENT"
+                    sub="If today were one scene in your story, which moment would make the cut?"
                   />
                   <Textarea
                     rows={4}
                     value={data.story_moment}
                     onChange={(e) => setData({ ...data, story_moment: e.target.value })}
-                    placeholder="The moment worth retelling…"
+                    placeholder="e.g. I finally sent the email I'd been dreading for a week — and it felt lighter after."
                     className="min-h-28 font-display text-base font-semibold leading-relaxed"
+                  />
+                  <StarterChips
+                    starters={STORY_STARTERS}
+                    onPick={(s) =>
+                      setData({
+                        ...data,
+                        story_moment: data.story_moment.trim() ? `${data.story_moment.replace(/\s+$/, "")} ${s}` : s,
+                      })
+                    }
                   />
                 </div>
               )}
@@ -192,14 +228,14 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-bronze"
                     icon={BookOpen}
-                    title="THE LESSON FEE"
-                    sub="Mistakes are tuition. What did today charge you — and what did you get for it?"
+                    title="WHAT TODAY TAUGHT YOU"
+                    sub="Name one mistake or slip from today, and the lesson you're taking from it."
                   />
                   <Textarea
                     rows={4}
                     value={data.mistakes}
                     onChange={(e) => setData({ ...data, mistakes: e.target.value })}
-                    placeholder="Where I slipped, and what it taught me…"
+                    placeholder="e.g. I checked my phone first thing and lost the morning — lesson: phone stays off until the first task is done."
                     className="min-h-28 font-display text-base font-semibold leading-relaxed"
                   />
                 </div>
@@ -210,14 +246,14 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-teal"
                     icon={Wrench}
-                    title="PATCH NOTES"
-                    sub="One fix that makes tomorrow run 1% smoother. Small patches compound."
+                    title="ONE FIX FOR TOMORROW"
+                    sub="One small change that would make tomorrow run smoother. Small fixes add up."
                   />
                   <Textarea
                     rows={4}
                     value={data.better_tomorrow}
                     onChange={(e) => setData({ ...data, better_tomorrow: e.target.value })}
-                    placeholder="Tomorrow gets better if I…"
+                    placeholder="e.g. Lay out my clothes and water tonight so the morning workout has no excuses."
                     className="min-h-28 font-display text-base font-semibold leading-relaxed"
                   />
                 </div>
@@ -228,8 +264,8 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-coral"
                     icon={Gauge}
-                    title="NO ROUNDING UP"
-                    sub="Score the day straight — the honest read, not the story you wish were true."
+                    title="SCORE THE DAY HONESTLY"
+                    sub="Rate each part of today as it really was — not as you wish it had gone."
                   />
                   <div className="flex items-center justify-between rounded-2xl border border-border/60 bg-muted/30 p-3.5">
                     <p className="text-sm font-semibold">Tonight&apos;s average</p>
@@ -282,7 +318,7 @@ export function EveningWizard() {
 
                   <div className="card-elevated space-y-2 p-4">
                     <Label className="flex items-center gap-1.5 text-sm font-semibold">
-                      <Sparkles className="size-4 text-primary" /> One honest line — the hit-in-the-head truth about today
+                      <Sparkles className="size-4 text-primary" /> One honest line — the plain truth about today, no spin
                     </Label>
                     <Textarea
                       rows={2}
@@ -299,14 +335,14 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-slate"
                     icon={BatteryLow}
-                    title="FIND THE LEAK"
-                    sub="Energy doesn't vanish — it leaks somewhere specific. Point at it."
+                    title="WHERE ENERGY LEAKED"
+                    sub="Where did your time or energy drain today? Point at the exact spot."
                   />
                   <Textarea
                     rows={3}
                     value={data.energy_leak}
                     onChange={(e) => setData({ ...data, energy_leak: e.target.value })}
-                    placeholder="The scroll hole, the dread task, the person, the snack spiral…"
+                    placeholder="e.g. 45 minutes lost to Instagram after lunch when I should've started the report."
                     className="font-display text-base font-semibold leading-relaxed"
                   />
                   <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-4">
@@ -337,14 +373,14 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-emerald"
                     icon={Trophy}
-                    title="PROOF OF WORK"
-                    sub="One win that proves today counted — evidence, not vibes."
+                    title="ONE REAL WIN"
+                    sub="One thing you actually got done today — proof the day counted."
                   />
                   <Textarea
                     rows={3}
                     value={data.win}
                     onChange={(e) => setData({ ...data, win: e.target.value })}
-                    placeholder="Today I actually…"
+                    placeholder="e.g. Today I actually finished the first draft instead of just planning it."
                     className="min-h-28 font-display text-base font-semibold leading-relaxed"
                   />
                 </div>
@@ -355,15 +391,24 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-blue"
                     icon={Rocket}
-                    title="TOMORROW STARTS TONIGHT"
-                    sub="Decide the first domino now — morning-you just executes."
+                    title="TOMORROW'S FIRST MOVE"
+                    sub="Decide the very first thing you'll do tomorrow, so morning-you just acts."
                   />
                   <Textarea
                     rows={3}
                     value={data.first_move}
                     onChange={(e) => setData({ ...data, first_move: e.target.value })}
-                    placeholder="The one concrete thing I do first tomorrow…"
+                    placeholder="e.g. Open the doc and write one paragraph before touching my phone."
                     className="min-h-28 font-display text-base font-semibold leading-relaxed"
+                  />
+                  <StarterChips
+                    starters={FIRST_MOVE_STARTERS}
+                    onPick={(s) =>
+                      setData({
+                        ...data,
+                        first_move: data.first_move.trim() ? `${data.first_move.replace(/\s+$/, "")} ${s}` : s,
+                      })
+                    }
                   />
                 </div>
               )}
@@ -373,8 +418,8 @@ export function EveningWizard() {
                   <StepHero
                     grad="solid-rose"
                     icon={Sparkles}
-                    title="FEEL IT REAL"
-                    sub="Close your eyes. Run the movie of tomorrow's first move — then read back how it landed."
+                    title="PICTURE IT LANDING"
+                    sub="Close your eyes, imagine tomorrow's first move going well, then note how it felt."
                   />
                   {data.first_move.trim() && (
                     <p className="rounded-2xl bg-muted/40 px-4 py-3 text-sm font-medium italic">
@@ -405,6 +450,52 @@ export function EveningWizard() {
                       value={data.vision_felt_note}
                       onChange={(e) => setData({ ...data, vision_felt_note: e.target.value })}
                       placeholder="e.g. calm settled in my chest, felt ready instead of anxious"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {stepIndex === 8 && (
+                <div className="space-y-4">
+                  <StepHero
+                    grad="solid-emerald"
+                    icon={Heart}
+                    title="END ON GRATITUDE"
+                    sub="Name five good things from today you're grateful for. Small ones count."
+                  />
+                  <div className="space-y-2.5">
+                    {data.gratitudes.map((g, i) => (
+                      <div key={i} className="flex items-center gap-2.5">
+                        <span className="grid size-9 shrink-0 place-items-center rounded-xl grad-emerald font-display text-sm font-extrabold text-white shadow-sm">
+                          {i + 1}
+                        </span>
+                        <Input
+                          value={g}
+                          onChange={(e) => {
+                            const next = [...data.gratitudes];
+                            next[i] = e.target.value;
+                            setData({ ...data, gratitudes: next });
+                          }}
+                          placeholder={
+                            [
+                              "Something that went right — e.g. The meeting landed better than I feared",
+                              "A person you're thankful for — e.g. A friend texted me out of nowhere",
+                              "A small moment — e.g. Ten quiet minutes with tea before bed",
+                              "Something about your body or health — e.g. My back felt good on the walk",
+                              "Anything at all — e.g. The rain held off until I got home",
+                            ][i]
+                          }
+                        />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-4">
+                    <Label>Which one do you feel most right now?</Label>
+                    <Input
+                      value={data.gratitude_felt_most}
+                      onChange={(e) => setData({ ...data, gratitude_felt_most: e.target.value })}
+                      placeholder="e.g. The friend texting — it reminded me people have my back"
+                      className="font-display text-base font-semibold"
                     />
                   </div>
                 </div>

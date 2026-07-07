@@ -557,6 +557,113 @@ LESSON: <one blunt takeaway the user can apply>`;
   };
 }
 
+export type CoachChatMsg = { role: "user" | "coach"; text: string };
+
+/** Generic follow-up chat: the user keeps questioning Leo's read on any section
+    (a vision, a month/week outlook, a day's schedule). `seed` is the read they're
+    responding to; `topic` names what it's about so Leo stays grounded. Up to 10 rounds. */
+export async function coachDiscuss({
+  identity,
+  profile,
+  topic,
+  seed,
+  messages,
+}: {
+  identity: Identity;
+  profile: Profile;
+  topic: string;
+  seed: string;
+  messages: CoachChatMsg[];
+}): Promise<string> {
+  const system = coachPersona(identity, profile);
+  const transcript = messages
+    .map((m) => `${m.role === "user" ? "USER" : "COACH"}: ${m.text}`)
+    .join("\n");
+  const userRounds = messages.filter((m) => m.role === "user").length;
+  const prompt = `The user is asking follow-up questions about ${topic}. This is a live back-and-forth — they can push you for up to 10 rounds.
+
+Your original read they're responding to:
+"""${seed}"""
+
+The conversation so far (round ${userRounds} of up to 10):
+${transcript}
+
+Reply to their LAST message directly. Rules:
+- 2-5 sentences, direct spoken tone, second person, no bullet points or headers.
+- Engage their exact words. If they push back, take it seriously — concede the valid part or show precisely where their reasoning breaks. Never just restate your original read.
+- Every round must move it forward: sharpen what's still unresolved and point at the next concrete step. Don't loop.
+- Stay grounded in their real context above and in ${topic} — never generic self-help.
+- ${userRounds >= 8 ? "This is late in the conversation — land it: give one plain-sentence takeaway and ONE concrete next action." : "If a sharp question cuts deeper than an answer, ask it — but only one."}`;
+  return generateText({ system, prompt, temperature: 0.6 });
+}
+
+export type GeneratedBlock = { time: string; block: string; priority: number };
+
+/** Build a realistic day schedule grounded in the user's weekly plan, monthly goals,
+    and honest profile (energy pattern, consistency, wake-up trouble). Never a template. */
+export async function generateDaySchedule({
+  identity,
+  profile,
+  weekday,
+  dateLabel,
+  weekTasks,
+  monthGoals,
+  existing,
+}: {
+  identity: Identity;
+  profile: Profile;
+  weekday: string;
+  dateLabel: string;
+  weekTasks: string[];
+  monthGoals: string[];
+  existing: { time: string; block: string }[];
+}): Promise<GeneratedBlock[]> {
+  const system = coachPersona(identity, profile);
+  const prompt = `Build the user a realistic, specific, time-blocked schedule for ${weekday} (${dateLabel}).
+
+Today's planned tasks (from their weekly plan) that MUST get real time on the day:
+${weekTasks.length ? weekTasks.map((t, i) => `${i + 1}. ${t}`).join("\n") : "(none set for today — anchor on the monthly goals and their future-identity behaviors above)"}
+
+The monthly goals this day should push forward:
+${monthGoals.length ? monthGoals.map((g, i) => `${i + 1}. ${g}`).join("\n") : "(none set)"}
+
+Blocks they've already put on the day — keep them, don't duplicate:
+${existing.length ? existing.map((e) => `${e.time} ${e.block}`).join("\n") : "(none yet)"}
+
+Rules:
+- Ground EVERY block in their real context above — the weekly tasks, monthly goals, energy pattern and capacity. Never a generic template day.
+- Be honest about their profile: if their past patterns/weaknesses show weak consistency or trouble waking early, do NOT pretend they'll be up at 5am. Either build ONE firm accountability block to fight it (name the trigger/anchor that starts it) or schedule realistically around their actual energy pattern. Put the hardest, most important work in their real peak-energy window.
+- Include movement, meals, and a wind-down. 6-10 blocks total, chronological, none overlapping.
+- Priority: 1=critical, 2=important, 3=normal, 4=someday. At most 3 blocks may be priority 1.
+
+Output ONLY the schedule, one block per line, EXACTLY this pipe format, nothing else:
+HH:MM | block description | priority
+Example: 07:00 | Workout — 30 min run | 2`;
+  const raw = await generateText({ system, prompt, temperature: 0.5 });
+  return raw
+    .split("\n")
+    .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split("|").map((p) => p.trim());
+      if (parts.length < 2) return null;
+      const [time, block, prio] = parts;
+      const tm = time.match(/^(\d{1,2}):(\d{2})$/);
+      if (!tm || !block) return null;
+      const h = Number(tm[1]);
+      const m = Number(tm[2]);
+      if (h > 23 || m > 59) return null;
+      const priority = [1, 2, 3, 4].includes(Number(prio)) ? Number(prio) : 2;
+      return {
+        time: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`,
+        block,
+        priority,
+      } as GeneratedBlock;
+    })
+    .filter((x): x is GeneratedBlock => x !== null)
+    .slice(0, 14);
+}
+
 export async function manifestationPrompt({
   identity,
   profile,
