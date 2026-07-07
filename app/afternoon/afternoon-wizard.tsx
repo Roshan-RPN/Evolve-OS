@@ -55,8 +55,8 @@ const STATUSES: {
 }[] = [
   { key: "done", label: "Done", icon: CheckCircle2, cls: "text-emerald border-emerald/50 bg-emerald/10" },
   { key: "moving", label: "Moving", icon: CircleDashed, cls: "text-primary border-primary/50 bg-primary/10" },
-  { key: "stalled", label: "Stalled", icon: CircleSlash, cls: "text-[var(--coral)] border-[var(--coral)]/50 bg-[var(--coral)]/10" },
-  { key: "untouched", label: "Not yet", icon: Circle, cls: "text-foreground border-foreground/40 bg-foreground/10 ring-1 ring-foreground/20" },
+  { key: "stalled", label: "Stalled", icon: CircleSlash, cls: "text-amber-500 border-amber-500/50 bg-amber-500/10" },
+  { key: "untouched", label: "Not yet", icon: Circle, cls: "text-[var(--coral)] border-[var(--coral)]/50 bg-[var(--coral)]/10" },
 ];
 
 // Tap-to-start openers — drop the first words, finish in your own.
