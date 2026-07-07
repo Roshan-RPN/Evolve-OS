@@ -16,9 +16,13 @@ type PushPayload = { title: string; body: string; url?: string };
 
 type SubRow = { endpoint: string; p256dh: string; auth: string };
 
-async function send(subs: SubRow[], payload: PushPayload) {
+export type PushResult = { subs: number; sent: number; errors: string[] };
+
+async function send(subs: SubRow[], payload: PushPayload): Promise<PushResult> {
   ensureConfigured();
   const supabase = createServerClient();
+  const errors: string[] = [];
+  let sent = 0;
   await Promise.all(
     subs.map(async (sub) => {
       try {
@@ -29,28 +33,37 @@ async function send(subs: SubRow[], payload: PushPayload) {
           },
           JSON.stringify(payload)
         );
+        sent++;
       } catch (err: unknown) {
         const statusCode = (err as { statusCode?: number })?.statusCode;
+        // Dead subscription — drop it so it stops counting as a device.
         if (statusCode === 404 || statusCode === 410) {
           await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
         }
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`${statusCode ?? "?"}: ${msg}`);
+        // Surface it in server logs too, instead of swallowing.
+        console.error("[push] send failed", statusCode, msg);
       }
     })
   );
+  return { subs: subs.length, sent, errors };
 }
 
 // One profile's devices only — reminders are personal now that the app is multi-user.
-export async function sendPushToUser(userId: string, payload: PushPayload) {
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<PushResult> {
   const supabase = createServerClient();
   const { data: subs } = await supabase
     .from("push_subscriptions")
     .select("endpoint, p256dh, auth")
     .eq("user_id", userId);
-  if (subs?.length) await send(subs, payload);
+  if (!subs?.length) return { subs: 0, sent: 0, errors: [] };
+  return send(subs, payload);
 }
 
-export async function sendPushToAll(payload: PushPayload) {
+export async function sendPushToAll(payload: PushPayload): Promise<PushResult> {
   const supabase = createServerClient();
   const { data: subs } = await supabase.from("push_subscriptions").select("endpoint, p256dh, auth");
-  if (subs?.length) await send(subs, payload);
+  if (!subs?.length) return { subs: 0, sent: 0, errors: [] };
+  return send(subs, payload);
 }

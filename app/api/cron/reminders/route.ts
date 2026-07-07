@@ -11,6 +11,8 @@ import { todayISO } from "@/lib/date";
 //   /api/cron/reminders?type=afternoon&secret=...  ~2pm (midday reset journal)
 //   /api/cron/reminders?type=evening&secret=...     ~9pm
 //   /api/cron/reminders?type=weekly-audit&secret=... Sundays
+//   /api/cron/reminders?type=test&secret=...        on-demand: pushes to every
+//     device right now (ignores all gates) so delivery can be verified.
 // Runs without a session cookie, so it fans out over every profile and
 // pushes only to that profile's own devices.
 export async function GET(request: NextRequest) {
@@ -27,6 +29,26 @@ export async function GET(request: NextRequest) {
   const date = todayISO();
   const { data: users } = await supabase.from("app_users").select("id");
   const userIds = (users ?? []).map((u) => u.id);
+
+  // On-demand delivery test: ignores every gate, pushes to all devices now, and
+  // reports how many subscriptions each user has, how many pushes went out, and
+  // any errors. Hit this URL in a browser to verify notifications actually work.
+  if (type === "test") {
+    const results: Record<string, unknown>[] = [];
+    let totalSubs = 0;
+    let totalSent = 0;
+    for (const userId of userIds) {
+      const r = await sendPushToUser(userId, {
+        title: "Test notification",
+        body: "If you can see this, push notifications work on this device.",
+        url: "/",
+      });
+      totalSubs += r.subs;
+      totalSent += r.sent;
+      results.push({ userId, ...r });
+    }
+    return NextResponse.json({ ok: true, users: userIds.length, totalSubs, totalSent, results });
+  }
 
   if (type === "morning") {
     for (const userId of userIds) {
@@ -48,6 +70,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (type === "afternoon") {
+    let sent = 0;
+    let skipped = 0;
     for (const userId of userIds) {
       const { data: journal } = await supabase
         .from("journal_entries")
@@ -56,14 +80,19 @@ export async function GET(request: NextRequest) {
         .eq("date", date)
         .maybeSingle();
       if (!journal?.afternoon) {
-        await sendPushToUser(userId, {
+        const r = await sendPushToUser(userId, {
           title: "Midday reset",
           body: "Half the day's still yours. Check where your priorities stand and refocus.",
           url: "/afternoon",
         });
+        sent += r.sent;
+      } else {
+        // Already journaled today — nothing to remind. This is why a 3pm run can
+        // legitimately deliver nothing: the reminder is only sent if it's unfilled.
+        skipped++;
       }
     }
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, sent, skippedAlreadyDone: skipped });
   }
 
   if (type === "evening") {
