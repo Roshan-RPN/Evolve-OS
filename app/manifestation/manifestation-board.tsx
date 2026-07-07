@@ -277,23 +277,38 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
       </section>
 
       {/* Vision-board hero image — the one board the user already made */}
-      <section className="space-y-2">
+      <section className="space-y-3">
         {boardUrl ? (
-          <div className="card-elevated relative overflow-hidden bg-muted/20">
-            {/* object-contain + capped height: whole image stays visible, never cropped, board never gets huge */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={boardUrl} alt="Your vision board" className="mx-auto block max-h-[22rem] w-full object-contain" />
-            <label className="absolute bottom-3 right-3 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
-              {heroBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-              Replace
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => onHeroFile(e.target.files?.[0])}
-              />
-            </label>
-          </div>
+          <>
+            {/* Premium plaque title — flanked rules, centred, feels like a framed piece */}
+            <div className="flex items-center justify-center gap-2.5">
+              <span className="h-px w-8 bg-gradient-to-r from-transparent to-primary/50 sm:w-12" />
+              <Gem className="size-4 text-primary" />
+              <h2 className="font-display text-base font-bold tracking-tight sm:text-lg">The life I&apos;m building</h2>
+              <span className="h-px w-8 bg-gradient-to-l from-transparent to-primary/50 sm:w-12" />
+            </div>
+            {/* Container hugs the image (w-fit) — no odd letterbox gaps. Gradient mat = premium frame. */}
+            <div className="mx-auto w-fit max-w-full">
+              <div className="card-elevated relative overflow-hidden bg-gradient-to-br from-primary/20 via-card to-primary/10 p-2 shadow-2xl ring-1 ring-primary/15">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={boardUrl}
+                  alt="Your vision board"
+                  className="block h-auto max-h-[26rem] w-auto max-w-full rounded-2xl object-contain"
+                />
+                <label className="absolute bottom-4 right-4 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
+                  {heroBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                  Replace
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => onHeroFile(e.target.files?.[0])}
+                  />
+                </label>
+              </div>
+            </div>
+          </>
         ) : (
           <label className="card-tint tint-blue corner-cut flex cursor-pointer flex-col items-center justify-center gap-2 p-10 text-center transition-transform hover:-translate-y-0.5">
             <span className="grid size-12 place-items-center rounded-2xl grad-blue text-white shadow-md">
