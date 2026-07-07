@@ -14,6 +14,7 @@ import {
   type PriorityStatus,
 } from "@/lib/actions/afternoon";
 import { CoachAvatar } from "@/components/coach-avatar";
+import { LeoFollowup } from "@/components/leo-followup";
 import {
   Sparkles,
   Sun,
@@ -171,6 +172,7 @@ export function AfternoonWizard({
             </div>
           </div>
           <p className="relative mt-4 whitespace-pre-wrap text-sm leading-relaxed">{result.nudge}</p>
+          <LeoFollowup topic="this midday reset and the rest of today" seed={result.nudge} />
         </div>
 
         {data.refocus.trim() && (

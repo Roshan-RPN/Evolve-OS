@@ -17,6 +17,7 @@ import {
   scorecardVerdict,
 } from "@/lib/evening-scorecard";
 import { CoachAvatar } from "@/components/coach-avatar";
+import { LeoFollowup } from "@/components/leo-followup";
 import {
   Sparkles,
   MoonStar,
@@ -159,6 +160,7 @@ export function EveningWizard() {
           <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
             {result.manifestation}
           </p>
+          <LeoFollowup topic="tonight's honest read on the day" seed={result.realization} />
         </div>
 
         <Button className="w-full" onClick={() => router.push("/")}>

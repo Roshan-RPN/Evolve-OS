@@ -194,6 +194,18 @@ Two follow-up commits *(7 Jul)* on the midday-reset "Where they stand" step:
 
 ---
 
+## 11. Leo follow-up on every journal
+
+**`PENDING` · Ask-Leo follow-up after afternoon + evening** *(7 Jul)*
+- Morning already let you keep questioning Leo under his plan read. Extended the
+  same reusable `LeoFollowup` thread to the other two journals:
+  - **Afternoon** — drops under the midday recalibration nudge.
+  - **Evening** — drops under tonight's realization dose.
+- Up to 10 rounds, seeded with that section's Leo read so he stays grounded;
+  chat lives in the UI, nothing persisted.
+
+---
+
 ## Bug fixes at a glance
 
 | Bug | Fixed in |
@@ -222,8 +234,8 @@ check-in "later" constraint.
 
 ## Where it stands now (latest)
 
-Newest commit: **`4264bb5`** — afternoon status buttons unified with color-coded
-circles (red / yellow / blue / green).
+Newest commit: **`PENDING`** — Leo follow-up thread now available under the
+afternoon and evening journal reads (morning already had it).
 
 **Working:** full daily loop (morning → midday reset → evening), habits, goals,
 schedule, check-ins with cross-view done-sync, manifestation board, analytics,
