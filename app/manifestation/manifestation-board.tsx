@@ -194,6 +194,88 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
         </button>
       </header>
 
+      {/* Composer — pinned to the top so adding to the board is the first thing after the hero */}
+      <section className="card-tint tint-blue corner-cut space-y-3 p-4 lg:p-5">
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <ImagePlus className="size-4 text-primary" /> Add to your board
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          {KINDS.map((k) => (
+            <button
+              key={k.key}
+              onClick={() => setKind(k.key)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                kind === k.key ? `${k.grad} text-white shadow-sm` : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {k.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">{activeKind.help}.</p>
+        <input
+          value={caption}
+          onChange={(e) => setCaption(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && add()}
+          placeholder="Caption it in present tense — e.g. I run my own studio and it's thriving"
+          className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm outline-none ring-primary/40 focus:ring-2"
+        />
+        {goalImages.length > 0 && (
+          <select
+            value={goalId}
+            onChange={(e) => setGoalId(e.target.value)}
+            className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm outline-none ring-primary/40 focus:ring-2"
+          >
+            <option value="">Tag a goal (optional)…</option>
+            {goalImages.map((g) => (
+              <option key={g.goal_id} value={g.goal_id}>
+                {g.content}
+              </option>
+            ))}
+          </select>
+        )}
+        {imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="preview" className="max-h-40 w-full rounded-2xl object-cover" />
+        )}
+        {showImage && (
+          <input
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && add()}
+            placeholder="Paste an image URL"
+            className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm outline-none ring-primary/40 focus:ring-2"
+          />
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-3">
+            <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
+              {uploadBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+              Upload image
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => onComposerFile(e.target.files?.[0])}
+              />
+            </label>
+            <button
+              onClick={() => setShowImage((v) => !v)}
+              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              {showImage ? "Hide link" : "or paste link"}
+            </button>
+          </div>
+          <button
+            onClick={add}
+            disabled={!caption.trim()}
+            className="inline-flex items-center justify-center gap-1.5 rounded-2xl grad-blue px-5 py-3 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
+          >
+            <Plus className="size-4" /> Pin it
+          </button>
+        </div>
+      </section>
+
       {/* Vision-board hero image — the one board the user already made */}
       <section className="space-y-2">
         {boardUrl ? (
@@ -317,88 +399,6 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
           </div>
         </section>
       )}
-
-      {/* Composer */}
-      <section className="card-tint tint-blue corner-cut space-y-3 p-4 lg:p-5">
-        <p className="flex items-center gap-1.5 text-sm font-semibold">
-          <ImagePlus className="size-4 text-primary" /> Add to your board
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
-          {KINDS.map((k) => (
-            <button
-              key={k.key}
-              onClick={() => setKind(k.key)}
-              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
-                kind === k.key ? `${k.grad} text-white shadow-sm` : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {k.label}
-            </button>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">{activeKind.help}.</p>
-        <input
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && add()}
-          placeholder="Caption it in present tense — e.g. I run my own studio and it's thriving"
-          className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm outline-none ring-primary/40 focus:ring-2"
-        />
-        {goalImages.length > 0 && (
-          <select
-            value={goalId}
-            onChange={(e) => setGoalId(e.target.value)}
-            className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm outline-none ring-primary/40 focus:ring-2"
-          >
-            <option value="">Tag a goal (optional)…</option>
-            {goalImages.map((g) => (
-              <option key={g.goal_id} value={g.goal_id}>
-                {g.content}
-              </option>
-            ))}
-          </select>
-        )}
-        {imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="preview" className="max-h-40 w-full rounded-2xl object-cover" />
-        )}
-        {showImage && (
-          <input
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && add()}
-            placeholder="Paste an image URL"
-            className="w-full rounded-2xl border border-border/60 bg-card px-4 py-3 text-sm outline-none ring-primary/40 focus:ring-2"
-          />
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <label className="inline-flex cursor-pointer items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
-              {uploadBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-              Upload image
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => onComposerFile(e.target.files?.[0])}
-              />
-            </label>
-            <button
-              onClick={() => setShowImage((v) => !v)}
-              className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {showImage ? "Hide link" : "or paste link"}
-            </button>
-          </div>
-          <button
-            onClick={add}
-            disabled={!caption.trim()}
-            className="inline-flex items-center justify-center gap-1.5 rounded-2xl grad-blue px-5 py-3 text-sm font-semibold text-white shadow-md transition-transform hover:-translate-y-0.5 disabled:opacity-40 disabled:hover:translate-y-0"
-          >
-            <Plus className="size-4" /> Pin it
-          </button>
-        </div>
-      </section>
 
       {/* Board feed — one titled section per kind, so visions, proof and
           affirmations each get their own room instead of one mixed pile */}
