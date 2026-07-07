@@ -184,18 +184,16 @@ export default async function HomePage() {
                   : "Lock your morning plan and check-ins show up here through the day."}
               </p>
             ) : (
-              <div className="space-y-2">
-                {/* mobile: full list · desktop keeps the 4-row bento cap */}
-                {checkins.map((c, i) => {
+              <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                {/* full list on every device — scroll inside the card to see them all */}
+                {checkins.map((c) => {
                   const s = checkinStatus(c.response as string | null);
                   const Icon = s.icon;
                   return (
                     <Link
                       key={c.id}
                       href={`/checkin/${c.id}`}
-                      className={`flex items-start gap-2.5 rounded-xl bg-muted/60 px-3 py-2 text-sm transition-colors hover:bg-muted ${
-                        i >= 4 ? "lg:hidden" : ""
-                      }`}
+                      className="flex items-start gap-2.5 rounded-xl bg-muted/60 px-3 py-2 text-sm transition-colors hover:bg-muted"
                     >
                       <Icon className={`mt-0.5 size-4 shrink-0 ${s.color}`} />
                       {/* full prompt, wraps instead of truncating so nothing is cut off */}
@@ -204,11 +202,6 @@ export default async function HomePage() {
                     </Link>
                   );
                 })}
-                {checkins.length > 4 && (
-                  <p className="hidden px-1 text-xs font-medium text-muted-foreground lg:block">
-                    +{checkins.length - 4} more through the day
-                  </p>
-                )}
               </div>
             )}
           </div>
@@ -222,24 +215,17 @@ export default async function HomePage() {
               {schedule.length === 0 ? (
                 <EmptyRow text="No time blocks yet — build your day on Schedule." href="/schedule" cta="Add blocks" />
               ) : (
-                <ol className="space-y-1.5">
-                  {/* mobile: full day · desktop keeps the 4-row bento cap */}
+                <ol className="max-h-64 space-y-1.5 overflow-y-auto pr-1">
+                  {/* full day on every device — scroll inside the card to see it all */}
                   {schedule.map((s, i) => (
                     <li
                       key={i}
-                      className={`prio-${s.priority ?? 2} prio-band flex items-center gap-3 rounded-xl py-2 pl-3 pr-3 ${
-                        i >= 4 ? "lg:hidden" : ""
-                      }`}
+                      className={`prio-${s.priority ?? 2} prio-band flex items-center gap-3 rounded-xl py-2 pl-3 pr-3`}
                     >
                       <span className="w-16 shrink-0 font-mono text-xs font-semibold text-primary">{s.time || "—"}</span>
                       <span className="truncate text-sm">{s.block}</span>
                     </li>
                   ))}
-                  {schedule.length > 4 && (
-                    <li className="hidden px-1 text-xs font-medium text-muted-foreground lg:block">
-                      +{schedule.length - 4} more — open Schedule
-                    </li>
-                  )}
                 </ol>
               )}
             </Panel>

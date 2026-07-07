@@ -174,6 +174,26 @@ Three refinement commits *(7 Jul)*:
 
 ---
 
+## 10. Afternoon status buttons — selectable + color-coded
+
+Two follow-up commits *(7 Jul)* on the midday-reset "Where they stand" step:
+
+**`6c23f90` · Make "Not yet" visibly selectable**
+- **Bug:** tapping **Not yet** did nothing visible. It was never disabled —
+  `setStatus` always fired — but its selected style was almost identical to the
+  unselected one, and "Not yet" is the *default* status, so selecting it looked
+  like a no-op.
+- **Fix:** gave selected "Not yet" a distinct highlight so the tap registers.
+- Also committed `EVOLUTION.md` (this file) for the first time.
+
+**`4264bb5` · Uniform buttons, colored circles**
+- All four status buttons now share the **same** shape/style — only the circle
+  color changes when selected:
+  - **Done** → green · **Moving** → blue · **Stalled** → yellow · **Not yet** → red
+- Dropped the odd ring treatment "Not yet" had; it's now consistent with the rest.
+
+---
+
 ## Bug fixes at a glance
 
 | Bug | Fixed in |
@@ -187,6 +207,7 @@ Three refinement commits *(7 Jul)*:
 | Check-in submit hang on "good" mood | `bb34537` |
 | "Enable notifications" button re-nagging | `0e506bf` |
 | Push failures silently swallowed | `0e506bf` |
+| Afternoon "Not yet" looked unselectable | `6c23f90` |
 
 ## Database migration trail
 
@@ -201,7 +222,8 @@ check-in "later" constraint.
 
 ## Where it stands now (latest)
 
-Newest commit: **`0e506bf`** — push notifications made reliable and verifiable.
+Newest commit: **`4264bb5`** — afternoon status buttons unified with color-coded
+circles (red / yellow / blue / green).
 
 **Working:** full daily loop (morning → midday reset → evening), habits, goals,
 schedule, check-ins with cross-view done-sync, manifestation board, analytics,
