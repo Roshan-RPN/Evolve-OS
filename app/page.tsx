@@ -10,6 +10,7 @@ import {
   CheckCircle2,
   Circle,
   XCircle,
+  Clock,
   ArrowRight,
   Trophy,
   CircleDashed,
@@ -66,7 +67,8 @@ export default async function HomePage() {
     afternoonDone,
     eveningDone,
     ...trackedHabits.map((h) => completedToday.has(h.id)),
-    ...checkins.map((c) => Boolean(c.response)),
+    // a deferred "later" is answered (no nag) but not yet a completed unit
+    ...checkins.map((c) => Boolean(c.response) && c.response !== "later"),
   ];
   const doneUnits = dayUnits.filter(Boolean).length;
   const totalUnits = Math.max(1, dayUnits.length);
@@ -409,6 +411,8 @@ function checkinStatus(response: string | null) {
       return { icon: CheckCircle2, color: "text-emerald", label: "Done" };
     case "partial":
       return { icon: CircleDashed, color: "text-[oklch(0.72_0.13_85)]", label: "Partial" };
+    case "later":
+      return { icon: Clock, color: "text-primary", label: "Later" };
     case "skipped":
       return { icon: XCircle, color: "text-[var(--red)]", label: "Not done" };
     default:

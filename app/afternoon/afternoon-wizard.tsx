@@ -115,9 +115,11 @@ function StepHero({
 
 export function AfternoonWizard({
   priorities,
+  doneItems = [],
   planLocked,
 }: {
   priorities: string[];
+  doneItems?: string[];
   planLocked: boolean;
 }) {
   const router = useRouter();
@@ -125,7 +127,11 @@ export function AfternoonWizard({
   const [data, setData] = useState<AfternoonInput>({
     on_track_score: 6,
     energy: "",
-    priority_progress: priorities.map((priority) => ({ priority, status: "untouched" as PriorityStatus })),
+    // Pre-check anything already struck done via a check-in or the schedule.
+    priority_progress: priorities.map((priority) => ({
+      priority,
+      status: doneItems.includes(priority.toLowerCase()) ? ("done" as PriorityStatus) : ("untouched" as PriorityStatus),
+    })),
     drift: "",
     honest_line: "",
     refocus: "",
@@ -276,13 +282,13 @@ export function AfternoonWizard({
                     grad="solid-teal"
                     icon={ListChecks}
                     title="WHERE THEY STAND"
-                    sub="Mark each priority honestly — this is what Leo checks the rest against."
+                    sub="Every priority and time block you planned today — mark each one honestly."
                   />
                   {data.priority_progress.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-border bg-muted/30 p-4 text-sm text-muted-foreground">
                       {planLocked
-                        ? "No top priorities on today's plan. You can still reset below — just be honest about what you've actually moved."
-                        : "You haven't locked a morning plan yet, so there are no priorities to track. Do the morning journal first, or reset on feel below."}
+                        ? "Nothing planned on today's plan yet. You can still reset below — just be honest about what you've actually moved."
+                        : "You haven't locked a morning plan or schedule yet, so there's nothing to track. Do the morning journal first, or reset on feel below."}
                     </div>
                   ) : (
                     <div className="space-y-3">

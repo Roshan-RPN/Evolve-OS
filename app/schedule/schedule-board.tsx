@@ -3,8 +3,8 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Trash2, CalendarClock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Sparkles, Loader2, Wand2 } from "lucide-react";
-import { saveSchedule, planDayWithLeo, type ScheduleItem } from "@/lib/actions/schedule";
+import { Plus, Trash2, CalendarClock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Sparkles, Loader2, Wand2, Check } from "lucide-react";
+import { saveSchedule, planDayWithLeo, toggleScheduleDone, type ScheduleItem } from "@/lib/actions/schedule";
 import { critiqueDraftPlan } from "@/lib/actions/morning";
 import { LeoFollowup } from "@/components/leo-followup";
 import { TimeWheel } from "@/components/time-wheel";
@@ -136,6 +136,17 @@ export function ScheduleBoard({
   function remove(idx: number) {
     persist(items.filter((_, i) => i !== idx));
     setWarning(null);
+  }
+
+  // Strike a block done (or clear it). Optimistic locally, synced server-side —
+  // which also mirrors onto a matching check-in so home agrees.
+  function toggleDone(idx: number) {
+    const target = items[idx];
+    const done = !target.done;
+    setItems((prev) => prev.map((it, i) => (i === idx ? { ...it, done } : it)));
+    startTransition(() => {
+      toggleScheduleDone(date, target.block, done);
+    });
   }
 
   const prevDate = shiftISO(date, -1);
@@ -352,11 +363,24 @@ export function ScheduleBoard({
                 className={`prio-${item.priority ?? 2} relative`}
               >
                 <span className="prio-dot absolute -left-4 top-5 size-3.5 rounded-full ring-4 ring-background" />
-                <div className="prio-band card-elevated group flex items-center gap-3 rounded-2xl p-3 lg:gap-4 lg:p-3.5">
+                <div className={`prio-band card-elevated group flex items-center gap-3 rounded-2xl p-3 transition-opacity lg:gap-4 lg:p-3.5 ${item.done ? "opacity-70" : ""}`}>
+                  {!readOnly && (
+                    <button
+                      onClick={() => toggleDone(idx)}
+                      className={`grid size-6 shrink-0 place-items-center rounded-full border transition-colors ${
+                        item.done
+                          ? "border-emerald bg-emerald text-white"
+                          : "border-muted-foreground/40 text-transparent hover:border-primary"
+                      }`}
+                      aria-label={item.done ? "Mark not done" : "Mark done"}
+                    >
+                      <Check className="size-3.5" />
+                    </button>
+                  )}
                   <span className="prio-chip grid min-w-16 place-items-center corner-cut px-2.5 py-1.5 font-mono text-xs font-bold tabular-nums lg:min-w-20 lg:px-3 lg:py-2">
                     {to24h(item.time)}
                   </span>
-                  <span className="flex-1 truncate text-sm font-medium">{item.block}</span>
+                  <span className={`flex-1 truncate text-sm font-medium ${item.done ? "text-muted-foreground line-through" : ""}`}>{item.block}</span>
                   <span className="prio-text hidden shrink-0 text-[11px] font-semibold sm:block">
                     {prioLabel(item.priority)}
                   </span>

@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { middayNudge } from "@/lib/ai/coach";
 import { todayISO } from "@/lib/date";
+import { revalidatePath } from "next/cache";
 
 export type PriorityStatus = "done" | "moving" | "stalled" | "untouched";
 
@@ -23,13 +24,38 @@ export async function getAfternoonContext() {
   const userId = await getUserId();
   const supabase = createServerClient();
   const date = todayISO();
-  const [{ data: plan }, { data: journal }] = await Promise.all([
-    supabase.from("plans").select("top_priorities, locked").eq("user_id", userId).eq("date", date).maybeSingle(),
+  const [{ data: plan }, { data: journal }, { data: checkins }] = await Promise.all([
+    supabase.from("plans").select("top_priorities, schedule, locked").eq("user_id", userId).eq("date", date).maybeSingle(),
     supabase.from("journal_entries").select("afternoon").eq("user_id", userId).eq("date", date).maybeSingle(),
+    supabase.from("checkins").select("linked_priority, response").eq("user_id", userId).eq("date", date),
   ]);
-  const priorities = Array.isArray(plan?.top_priorities) ? (plan!.top_priorities as string[]) : [];
+  const topPriorities = Array.isArray(plan?.top_priorities) ? (plan!.top_priorities as string[]) : [];
+  const scheduleItems = Array.isArray(plan?.schedule)
+    ? (plan!.schedule as { block?: string; done?: boolean }[])
+    : [];
+  const scheduleBlocks = scheduleItems.map((s) => (s?.block ?? "").trim()).filter(Boolean);
+  // Everything planned for today: top priorities first, then every schedule
+  // block not already covered by a priority (case-insensitive dedup).
+  const seen = new Set<string>();
+  const priorities: string[] = [];
+  for (const item of [...topPriorities, ...scheduleBlocks]) {
+    const key = item.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    priorities.push(item);
+  }
+  // Anything already marked done elsewhere (a struck schedule block or a "done"
+  // check-in) so the wizard opens with it pre-checked. Lowercased for matching.
+  const doneItems = new Set<string>();
+  for (const s of scheduleItems) {
+    if (s.done && s.block?.trim()) doneItems.add(s.block.trim().toLowerCase());
+  }
+  for (const c of checkins ?? []) {
+    if (c.response === "done" && c.linked_priority) doneItems.add(c.linked_priority.trim().toLowerCase());
+  }
   return {
     priorities,
+    doneItems: [...doneItems],
     planLocked: Boolean(plan?.locked),
     alreadyDone: Boolean(journal?.afternoon),
   };
@@ -95,6 +121,40 @@ export async function submitAfternoonEntry(input: AfternoonInput) {
     },
     { onConflict: "user_id,date" }
   );
+
+  // Strike off the schedule: any planned block marked "done" here.
+  const doneTexts = new Set(
+    input.priority_progress
+      .filter((p) => p.status === "done")
+      .map((p) => p.priority.trim().toLowerCase())
+  );
+  if (doneTexts.size) {
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("schedule")
+      .eq("user_id", userId)
+      .eq("date", date)
+      .maybeSingle();
+    const items = Array.isArray(plan?.schedule)
+      ? (plan!.schedule as { block?: string; done?: boolean }[])
+      : [];
+    let changed = false;
+    const next = items.map((it) => {
+      if (it.block && doneTexts.has(it.block.trim().toLowerCase())) {
+        changed = true;
+        return { ...it, done: true };
+      }
+      return it;
+    });
+    if (changed) {
+      await supabase
+        .from("plans")
+        .update({ schedule: next, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("date", date);
+      revalidatePath("/schedule");
+    }
+  }
 
   return { nudge };
 }

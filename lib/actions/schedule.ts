@@ -5,8 +5,9 @@ import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { generateDaySchedule } from "@/lib/ai/coach";
 import { todayISO, weekKeyOf, weekDates, prettyISO } from "@/lib/date";
+import { revalidatePath } from "next/cache";
 
-export type ScheduleItem = { time: string; block: string; color?: string; priority?: number };
+export type ScheduleItem = { time: string; block: string; color?: string; priority?: number; done?: boolean };
 
 export async function getScheduleForDate(date: string): Promise<{ items: ScheduleItem[]; date: string }> {
   const userId = await getUserId();
@@ -43,6 +44,46 @@ export async function saveSchedule(
     { onConflict: "user_id,date" }
   );
   return { items: clean };
+}
+
+// Strike a schedule block done (or clear it), matched by its text. Keeps the
+// day's matching check-in in sync so the home page reflects it too.
+export async function toggleScheduleDone(
+  date: string,
+  block: string,
+  done: boolean
+): Promise<{ items: ScheduleItem[] }> {
+  const userId = await getUserId();
+  const supabase = createServerClient();
+  const target = date && date <= todayISO() ? date : todayISO();
+
+  const { data } = await supabase
+    .from("plans")
+    .select("schedule")
+    .eq("user_id", userId)
+    .eq("date", target)
+    .maybeSingle();
+  const items = Array.isArray(data?.schedule) ? (data!.schedule as ScheduleItem[]) : [];
+  const key = block.trim().toLowerCase();
+  const next = items.map((i) => (i.block?.trim().toLowerCase() === key ? { ...i, done } : i));
+
+  await supabase
+    .from("plans")
+    .update({ schedule: next, updated_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("date", target);
+
+  // Mirror onto a check-in with the same text, so "Your check-ins" on home agrees.
+  await supabase
+    .from("checkins")
+    .update({ response: done ? "done" : null, responded_at: new Date().toISOString() })
+    .eq("user_id", userId)
+    .eq("date", target)
+    .eq("linked_priority", block.trim());
+
+  revalidatePath("/schedule");
+  revalidatePath("/");
+  return { items: next };
 }
 
 /**

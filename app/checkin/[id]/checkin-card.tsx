@@ -6,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { respondToCheckin } from "@/lib/actions/checkins";
 import { useRouter } from "next/navigation";
 
+type Response = "done" | "partial" | "later" | "skipped";
+
 type Checkin = {
   id: string;
   prompt: string;
@@ -13,10 +15,11 @@ type Checkin = {
   follow_up_story: string | null;
 };
 
-const RESPONSES = [
-  { value: "done" as const, label: "Done" },
-  { value: "partial" as const, label: "Partially" },
-  { value: "skipped" as const, label: "Skipped it" },
+const RESPONSES: { value: Response; label: string }[] = [
+  { value: "done", label: "Done" },
+  { value: "partial", label: "Partially" },
+  { value: "later", label: "Do it later" },
+  { value: "skipped", label: "Skipped it" },
 ];
 
 const MOODS = [
@@ -28,11 +31,11 @@ const MOODS = [
 
 export function CheckinCard({ checkin }: { checkin: Checkin }) {
   const router = useRouter();
-  const [response, setResponse] = useState(checkin.response as "done" | "partial" | "skipped" | null);
+  const [response, setResponse] = useState(checkin.response as Response | null);
   const [story, setStory] = useState(checkin.follow_up_story);
   const [submitting, setSubmitting] = useState(false);
 
-  async function pick(value: "done" | "partial" | "skipped") {
+  async function pick(value: Response) {
     setResponse(value);
   }
 
@@ -60,13 +63,13 @@ export function CheckinCard({ checkin }: { checkin: Checkin }) {
         <CardContent className="space-y-5">
           {!story && (
             <>
-              <div className="flex gap-2">
+              <div className="grid grid-cols-2 gap-2">
                 {RESPONSES.map((r) => (
                   <Button
                     key={r.value}
                     variant={response === r.value ? "default" : "outline"}
                     onClick={() => pick(r.value)}
-                    className="flex-1"
+                    className="w-full"
                   >
                     {r.label}
                   </Button>

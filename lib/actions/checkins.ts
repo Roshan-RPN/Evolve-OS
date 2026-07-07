@@ -37,7 +37,7 @@ export async function respondToCheckin({
   mood,
 }: {
   id: string;
-  response: "done" | "partial" | "skipped";
+  response: "done" | "partial" | "skipped" | "later";
   mood?: "good" | "low" | "stuck" | "confused";
 }) {
   const userId = await getUserId();
@@ -60,7 +60,45 @@ export async function respondToCheckin({
     .eq("id", id)
     .eq("user_id", userId);
 
+  // Keep the day's schedule in sync: a block with the same text as this priority
+  // strikes off when the check-in is "done", clears otherwise.
+  const { data: ci } = await supabase
+    .from("checkins")
+    .select("date, linked_priority")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (ci?.linked_priority) {
+    const { data: plan } = await supabase
+      .from("plans")
+      .select("schedule")
+      .eq("user_id", userId)
+      .eq("date", ci.date)
+      .maybeSingle();
+    const items = Array.isArray(plan?.schedule)
+      ? (plan!.schedule as { block?: string; done?: boolean }[])
+      : [];
+    const key = ci.linked_priority.trim().toLowerCase();
+    let changed = false;
+    const next = items.map((it) => {
+      if (it.block?.trim().toLowerCase() === key) {
+        changed = true;
+        return { ...it, done: response === "done" };
+      }
+      return it;
+    });
+    if (changed) {
+      await supabase
+        .from("plans")
+        .update({ schedule: next, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("date", ci.date);
+      revalidatePath("/schedule");
+    }
+  }
+
   revalidatePath(`/checkin/${id}`);
+  revalidatePath("/");
   return { followUpStory };
 }
 
