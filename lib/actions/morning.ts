@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { getRecentCompletionSummary } from "@/lib/actions/history";
 import { critiquePlan, morningStory } from "@/lib/ai/coach";
+import { writeWithRetry } from "@/lib/supabase/write";
 import { todayISO } from "@/lib/date";
 
 export type MorningInput = {
@@ -84,18 +85,20 @@ export async function submitMorningEntry(input: MorningInput) {
     }
   }
 
-  await supabase.from("plans").upsert(
-    {
-      user_id: userId,
-      date,
-      top_priorities: input.top_priorities,
-      todo: input.todo,
-      schedule,
-      ai_critique: critique,
-      locked: true,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,date" }
+  await writeWithRetry("lock plan", () =>
+    supabase.from("plans").upsert(
+      {
+        user_id: userId,
+        date,
+        top_priorities: input.top_priorities,
+        todo: input.todo,
+        schedule,
+        ai_critique: critique,
+        locked: true,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,date" }
+    )
   );
 
   let story: string;
@@ -112,22 +115,24 @@ export async function submitMorningEntry(input: MorningInput) {
       "Leo couldn't reach through just now — but your morning is saved. You set the tone; now go live it.";
   }
 
-  await supabase.from("journal_entries").upsert(
-    {
-      user_id: userId,
-      date,
-      morning: {
-        affirmations: input.affirmations,
-        affirmation_truth_score: input.affirmation_truth_score,
-        emotion: input.emotion,
-        energy: input.energy,
-        gratitudes: input.gratitudes,
-        gratitude_felt_most: input.gratitude_felt_most,
+  await writeWithRetry("save morning journal", () =>
+    supabase.from("journal_entries").upsert(
+      {
+        user_id: userId,
+        date,
+        morning: {
+          affirmations: input.affirmations,
+          affirmation_truth_score: input.affirmation_truth_score,
+          emotion: input.emotion,
+          energy: input.energy,
+          gratitudes: input.gratitudes,
+          gratitude_felt_most: input.gratitude_felt_most,
+        },
+        ai_morning_story: story,
+        updated_at: new Date().toISOString(),
       },
-      ai_morning_story: story,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,date" }
+      { onConflict: "user_id,date" }
+    )
   );
 
   return { critique, story };

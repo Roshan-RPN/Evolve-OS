@@ -235,6 +235,37 @@ issue), the whole action threw: **nothing was saved** and the button hung on
 
 ---
 
+## 13. Leo stopped going silent on transient Gemini blips
+
+**`PENDING` · Retry Gemini + guard empty reads** *(8 Jul)*
+
+**The bug (why Leo didn't respond to a morning entry):** Google's free-tier
+`gemini-2.5-flash` was intermittently returning **`503 UNAVAILABLE` — "model
+experiencing high demand"** (measured live: ~50% of calls failing in a spike). It
+was **not** a rate limit (429) and **not** a bad key — the key is valid and works
+whenever it gets a 200. But the AI client had **no retry**: a single 503 dropped
+straight to Leo's fallback text. Morning fires *two* Leo calls (plan critique +
+story), so the odds of at least one showing the fallback were high — that's the
+"Leo not responding" symptom.
+
+- **Fix 1 — retry with backoff:** `generateText` now retries the retryable
+  statuses (429/500/502/503/504) up to 4 times with exponential backoff + jitter
+  (~0.4s → 0.8s → 1.6s). Real errors (400 bad request, 403 bad key) still fail
+  fast. Applies to both Gemini and OpenAI paths.
+- **Fix 2 — empty-response guard:** a `200` with no text (safety block, or a
+  thinking model that spends its whole token budget) used to save a *blank* read.
+  It now throws so the caller's fallback text shows instead of Leo going silent.
+
+**Also — the "Couldn't lock in" failure was a *separate* problem:** the three
+journal saves never checked Supabase's returned `{ error }`, and had no retry. So
+(a) a transient network drop reaching the database lost the whole save (the
+morning "Try again" screen), and (b) a real DB error would have silently
+"succeeded" while saving nothing. New `writeWithRetry` helper wraps the primary
+saves (plan lock, morning/afternoon/evening journal upserts): it retries transient
+failures with backoff **and** throws on a persistent error, so the UI honestly
+shows "Try again" instead of faking a save. Confirmed via the DB: the failed
+lock-in had written no row at all.
+
 ## Bug fixes at a glance
 
 | Bug | Fixed in |
@@ -250,6 +281,8 @@ issue), the whole action threw: **nothing was saved** and the button hung on
 | Push failures silently swallowed | `0e506bf` |
 | Afternoon "Not yet" looked unselectable | `6c23f90` |
 | Journal submit lost the entry + hung when Leo/Gemini failed | `fc79ae7` |
+| Leo went silent on transient Gemini 503s (no retry) + blank on empty reads | `PENDING` |
+| Lock-in save lost on a network blip + swallowed DB errors (no `.error` check/retry) | `PENDING` |
 
 ## Database migration trail
 
@@ -264,10 +297,11 @@ check-in "later" constraint.
 
 ## Where it stands now (latest)
 
-Newest change (uncommitted): journal submits now save even when Leo/Gemini fails
-(fixing lost entries + the stuck "Reflecting…" button), plus a new **Journal
-history** page at `/journal` to read every past morning/afternoon/evening back.
-Previous commit: **`8b6ea42`** — Leo follow-up thread on afternoon + evening.
+Newest change (uncommitted): Leo now retries transient Gemini `503 "high demand"`
+blips (with backoff) instead of going silent on the first failure, and treats an
+empty AI response as a failure so a blank read never gets saved. Previous commit:
+**`fc79ae7`** — journal submits save even when Leo fails + the `/journal` history
+page.
 
 **Working:** full daily loop (morning → midday reset → evening), habits, goals,
 schedule, check-ins with cross-view done-sync, manifestation board, analytics,

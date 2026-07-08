@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { middayNudge } from "@/lib/ai/coach";
+import { writeWithRetry } from "@/lib/supabase/write";
 import { todayISO } from "@/lib/date";
 import { revalidatePath } from "next/cache";
 
@@ -120,14 +121,16 @@ export async function submitAfternoonEntry(input: AfternoonInput) {
 
   // Only afternoon + updated_at are written, so morning/evening on the same row
   // are left untouched (Postgres ON CONFLICT sets only the columns we pass).
-  await supabase.from("journal_entries").upsert(
-    {
-      user_id: userId,
-      date,
-      afternoon: afternoonJournal,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,date" }
+  await writeWithRetry("save afternoon reset", () =>
+    supabase.from("journal_entries").upsert(
+      {
+        user_id: userId,
+        date,
+        afternoon: afternoonJournal,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,date" }
+    )
   );
 
   // Strike off the schedule: any planned block marked "done" here.

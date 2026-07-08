@@ -12,6 +12,37 @@ type GenerateTextArgs = {
   temperature?: number;
 };
 
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// Gemini/OpenAI free tiers routinely throw transient 503 "high demand" (and the
+// odd 429/500) that clear on a quick retry. Without this a single blip drops Leo
+// to his fallback text. Retry the retryable statuses with short backoff; let
+// real errors (bad key 403, bad request 400) fail fast.
+const RETRYABLE = new Set([429, 500, 502, 503, 504]);
+
+async function withRetry<T>(fn: () => Promise<T>, tries = 4): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < tries; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      const status = (e as { status?: number })?.status;
+      if (status === undefined || !RETRYABLE.has(status) || i === tries - 1) throw e;
+      await sleep(400 * 2 ** i + Math.random() * 200); // 0.4s, 0.8s, 1.6s (+jitter)
+    }
+  }
+  throw lastErr;
+}
+
+class HttpError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
 /** The signed-in profile's own Gemini key + model choice, if saved on /profile.
     Falls back to nulls outside a session (or before migrations 0010/0014 ran). */
 async function userAiConfig(): Promise<{ key: string | null; model: string | null }> {
@@ -53,11 +84,13 @@ async function callOpenAI({ system, prompt, temperature = 0.8 }: GenerateTextArg
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`OpenAI request failed (${res.status}): ${text}`);
+    throw new HttpError(res.status, `OpenAI request failed (${res.status}): ${text}`);
   }
 
   const data = await res.json();
-  return data.choices?.[0]?.message?.content?.trim() ?? "";
+  const out = data.choices?.[0]?.message?.content?.trim() ?? "";
+  if (!out) throw new Error("OpenAI returned an empty response");
+  return out;
 }
 
 async function callGemini({ system, prompt, temperature = 0.8 }: GenerateTextArgs) {
@@ -83,16 +116,21 @@ async function callGemini({ system, prompt, temperature = 0.8 }: GenerateTextArg
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`Gemini request failed (${res.status}): ${text}`);
+    throw new HttpError(res.status, `Gemini request failed (${res.status}): ${text}`);
   }
 
   const data = await res.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  const out = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() ?? "";
+  // A 200 with no text (safety block, or a thinking model that spent its whole
+  // budget) would otherwise save a blank read. Treat empty as a failure so the
+  // caller's fallback text shows instead of Leo going silent.
+  if (!out) throw new Error("Gemini returned an empty response");
+  return out;
 }
 
 export async function generateText(args: GenerateTextArgs): Promise<string> {
   const provider = (process.env.AI_PROVIDER || "gemini").toLowerCase();
-  if (provider === "openai") return callOpenAI(args);
-  if (provider === "gemini") return callGemini(args);
+  if (provider === "openai") return withRetry(() => callOpenAI(args));
+  if (provider === "gemini") return withRetry(() => callGemini(args));
   throw new Error(`Unknown AI_PROVIDER "${provider}" — use "openai" or "gemini"`);
 }

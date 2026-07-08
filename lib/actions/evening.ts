@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { getRecentPatternsSummary } from "@/lib/actions/history";
 import { eveningRealization, manifestationPrompt } from "@/lib/ai/coach";
+import { writeWithRetry } from "@/lib/supabase/write";
 import { todayISO } from "@/lib/date";
 import {
   scorecardSummary,
@@ -95,15 +96,17 @@ export async function submitEveningEntry(input: EveningInput) {
       : "Picture tomorrow's first move going right. Feel it land before you sleep.";
   }
 
-  await supabase.from("journal_entries").upsert(
-    {
-      user_id: userId,
-      date,
-      evening: { ...eveningJournal, manifestation },
-      ai_realization: realization,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "user_id,date" }
+  await writeWithRetry("save evening entry", () =>
+    supabase.from("journal_entries").upsert(
+      {
+        user_id: userId,
+        date,
+        evening: { ...eveningJournal, manifestation },
+        ai_realization: realization,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,date" }
+    )
   );
 
   // Mirror the sensory read into the shared felt-sense log so the Manifestation
