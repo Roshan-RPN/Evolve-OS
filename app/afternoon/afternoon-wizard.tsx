@@ -138,6 +138,7 @@ export function AfternoonWizard({
     refocus: "",
   });
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(false);
   const [result, setResult] = useState<{ nudge: string } | null>(null);
 
   const isReview = stepIndex === STEP_TITLES.length - 1;
@@ -152,9 +153,16 @@ export function AfternoonWizard({
 
   async function submit() {
     setSubmitting(true);
-    const res = await submitAfternoonEntry(data);
-    setResult(res);
-    setSubmitting(false);
+    setSubmitError(false);
+    try {
+      const res = await submitAfternoonEntry(data);
+      setResult(res);
+    } catch (e) {
+      console.error("afternoon submit failed:", e);
+      setSubmitError(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (result) {
@@ -398,8 +406,13 @@ export function AfternoonWizard({
                     </p>
                   </div>
                   <Button className="h-12 w-full text-[15px] font-semibold" onClick={submit} disabled={submitting}>
-                    {submitting ? "Recalibrating..." : "Get my midday reset"}
+                    {submitting ? "Recalibrating..." : submitError ? "Try again" : "Get my midday reset"}
                   </Button>
+                  {submitError && (
+                    <p className="text-center text-sm font-medium text-destructive">
+                      Couldn&apos;t submit — your writing is still here. Check your connection and tap Try again.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>

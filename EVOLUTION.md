@@ -206,6 +206,35 @@ Two follow-up commits *(7 Jul)* on the midday-reset "Where they stand" step:
 
 ---
 
+## 12. Journal never lost + history viewer
+
+**`PENDING` · Resilient journal submit + read-back history** *(8 Jul)*
+
+**The bug (why last night's evening journal wouldn't submit):** every journal
+submit was *AI-first* — it called Leo (Gemini) **before** writing anything to the
+database, with no error handling. If Gemini failed (rate limit, network blip, key
+issue), the whole action threw: **nothing was saved** and the button hung on
+"Reflecting…" forever. The user's writing was lost.
+
+- **Fix (all three journals):** Leo's generation is now wrapped so a failure can't
+  block the save — the entry is written to the DB regardless, with a plain
+  fallback read if Leo is down. The wizards also recover: on any error the button
+  resets to **"Try again"** with a *"your writing is still here"* note instead of
+  freezing. Applies to morning (critique + story), afternoon (nudge), evening
+  (realization + manifestation).
+
+**New — Journal history viewer** (`/journal`, in the sidebar/Journal group):
+- One page listing every day you've journaled or planned, newest first.
+- Tap a day to expand and read the full **morning** (priorities, to-dos, schedule,
+  affirmation, mood/energy, gratitudes + Leo's plan read & story), **afternoon**
+  (on-track, priority statuses, drift, honest line, refocus + Leo's nudge), and
+  **evening** (moment, win, lesson, scorecard, honest truth, energy leak,
+  self-respect, tomorrow's first move, gratitudes + Leo's realization &
+  manifestation).
+- Read-only, merges the `journal_entries` row with that day's `plans` row.
+
+---
+
 ## Bug fixes at a glance
 
 | Bug | Fixed in |
@@ -220,6 +249,7 @@ Two follow-up commits *(7 Jul)* on the midday-reset "Where they stand" step:
 | "Enable notifications" button re-nagging | `0e506bf` |
 | Push failures silently swallowed | `0e506bf` |
 | Afternoon "Not yet" looked unselectable | `6c23f90` |
+| Journal submit lost the entry + hung when Leo/Gemini failed | `PENDING` |
 
 ## Database migration trail
 
@@ -234,8 +264,10 @@ check-in "later" constraint.
 
 ## Where it stands now (latest)
 
-Newest commit: **`8b6ea42`** — Leo follow-up thread now available under the
-afternoon and evening journal reads (morning already had it).
+Newest change (uncommitted): journal submits now save even when Leo/Gemini fails
+(fixing lost entries + the stuck "Reflecting…" button), plus a new **Journal
+history** page at `/journal` to read every past morning/afternoon/evening back.
+Previous commit: **`8b6ea42`** — Leo follow-up thread on afternoon + evening.
 
 **Working:** full daily loop (morning → midday reset → evening), habits, goals,
 schedule, check-ins with cross-view done-sync, manifestation board, analytics,
@@ -243,8 +275,6 @@ Leo AI coach, multi-user accounts with RLS + security hardening, and push
 reminders you can test on demand.
 
 **Known open items (not built yet):**
-- **No journal-history viewer** — entries are saved but there's no screen to read
-  past morning/afternoon/evening reflections back. (Analytics only counts days.)
 - Roadmap asks still pending: goals/planning depth, evening scorecard,
   manifestation extras, stories.
 

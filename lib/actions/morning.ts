@@ -49,16 +49,24 @@ export async function submitMorningEntry(input: MorningInput) {
   const date = todayISO();
   const [identity, profile] = await Promise.all([getIdentity(), getProfile()]);
 
-  const critique = await critiquePlan({
-    identity,
-    profile,
-    plan: {
-      top_priorities: input.top_priorities,
-      todo: input.todo,
-      schedule: input.schedule,
-    },
-    recentCompletionRate: await getRecentCompletionSummary(),
-  });
+  // Leo (Gemini) can fail — never let that block locking the plan. Fall back.
+  let critique: string;
+  try {
+    critique = await critiquePlan({
+      identity,
+      profile,
+      plan: {
+        top_priorities: input.top_priorities,
+        todo: input.todo,
+        schedule: input.schedule,
+      },
+      recentCompletionRate: await getRecentCompletionSummary(),
+    });
+  } catch (e) {
+    console.error("morning critique failed, saving plan anyway:", e);
+    critique =
+      "Leo couldn't reach through just now — but your plan is locked. Pick the one priority that would make today a win and start there.";
+  }
 
   // Don't clobber a schedule already built on the Schedule page: the wizard and
   // /schedule share plans.schedule, so if the wizard's schedule step is empty
@@ -90,12 +98,19 @@ export async function submitMorningEntry(input: MorningInput) {
     { onConflict: "user_id,date" }
   );
 
-  const story = await morningStory({
-    identity,
-    profile,
-    mood: input.emotion,
-    energy: String(input.energy),
-  });
+  let story: string;
+  try {
+    story = await morningStory({
+      identity,
+      profile,
+      mood: input.emotion,
+      energy: String(input.energy),
+    });
+  } catch (e) {
+    console.error("morning story failed, saving journal anyway:", e);
+    story =
+      "Leo couldn't reach through just now — but your morning is saved. You set the tone; now go live it.";
+  }
 
   await supabase.from("journal_entries").upsert(
     {

@@ -125,6 +125,7 @@ export function MorningWizard() {
   const [critique, setCritique] = useState<string | null>(null);
   const [loadingCritique, setLoadingCritique] = useState(false);
   const [locking, setLocking] = useState(false);
+  const [lockError, setLockError] = useState(false);
   const [story, setStory] = useState<string | null>(null);
 
   const isReview = stepIndex === STEP_TITLES.length - 1;
@@ -134,24 +135,38 @@ export function MorningWizard() {
     setStepIndex(STEP_TITLES.length - 1);
     if (critique || loadingCritique) return;
     setLoadingCritique(true);
-    const result = await critiqueDraftPlan({
-      top_priorities: data.top_priorities,
-      todo: data.todo.filter(Boolean),
-      schedule: data.schedule.filter((s) => s.time || s.block),
-    });
-    setCritique(result);
-    setLoadingCritique(false);
+    try {
+      const result = await critiqueDraftPlan({
+        top_priorities: data.top_priorities,
+        todo: data.todo.filter(Boolean),
+        schedule: data.schedule.filter((s) => s.time || s.block),
+      });
+      setCritique(result);
+    } catch (e) {
+      console.error("morning critique failed:", e);
+      // Don't block lock-in — leave critique empty; Leo just skips his read.
+      setCritique("");
+    } finally {
+      setLoadingCritique(false);
+    }
   }
 
   async function lockIn() {
     setLocking(true);
-    const result = await submitMorningEntry({
-      ...data,
-      todo: data.todo.filter(Boolean),
-      schedule: data.schedule.filter((s) => s.time || s.block),
-    });
-    setStory(result.story);
-    setLocking(false);
+    setLockError(false);
+    try {
+      const result = await submitMorningEntry({
+        ...data,
+        todo: data.todo.filter(Boolean),
+        schedule: data.schedule.filter((s) => s.time || s.block),
+      });
+      setStory(result.story);
+    } catch (e) {
+      console.error("morning lock-in failed:", e);
+      setLockError(true);
+    } finally {
+      setLocking(false);
+    }
   }
 
   if (story) {
@@ -601,8 +616,13 @@ export function MorningWizard() {
                     </div>
                   </div>
                   <Button className="h-12 w-full text-[15px] font-semibold" onClick={lockIn} disabled={loadingCritique || locking}>
-                    {locking ? "Locking in..." : "Lock it in"}
+                    {locking ? "Locking in..." : lockError ? "Try again" : "Lock it in"}
                   </Button>
+                  {lockError && (
+                    <p className="text-center text-sm font-medium text-destructive">
+                      Couldn&apos;t lock in — your plan is still here. Check your connection and tap Try again.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>

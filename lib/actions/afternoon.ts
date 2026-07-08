@@ -88,17 +88,25 @@ export async function submitAfternoonEntry(input: AfternoonInput) {
     ? input.priority_progress.map((p) => `- ${p.priority}: ${p.status}`).join("\n")
     : "";
 
-  const nudge = await middayNudge({
-    identity,
-    profile,
-    onTrackScore: input.on_track_score,
-    energy: input.energy,
-    priorityProgress,
-    drift: input.drift,
-    honestLine: input.honest_line,
-    refocus: input.refocus,
-    checkinsSummary,
-  });
+  // Leo (Gemini) can fail — never let that lose the reset. Fall back and still save.
+  let nudge: string;
+  try {
+    nudge = await middayNudge({
+      identity,
+      profile,
+      onTrackScore: input.on_track_score,
+      energy: input.energy,
+      priorityProgress,
+      drift: input.drift,
+      honestLine: input.honest_line,
+      refocus: input.refocus,
+      checkinsSummary,
+    });
+  } catch (e) {
+    console.error("afternoon AI failed, saving entry anyway:", e);
+    nudge =
+      "Leo couldn't reach through just now — but your reset is saved. You know where the day drifted; name the one thing that matters for the rest of it and go do it.";
+  }
 
   const afternoonJournal = {
     on_track_score: input.on_track_score,

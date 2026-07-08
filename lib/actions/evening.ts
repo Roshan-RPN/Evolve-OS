@@ -69,18 +69,31 @@ export async function submitEveningEntry(input: EveningInput) {
     gratitude_felt_most: input.gratitude_felt_most,
   };
 
-  const [realization, manifestation] = await Promise.all([
-    eveningRealization({
-      identity,
-      profile,
-      journalEntry: eveningJournal,
-      scorecardSummary: scorecardSummary(input.scorecard),
-      honestReadout: input.honest_readout,
-      checkinsSummary,
-      recentPatterns,
-    }),
-    manifestationPrompt({ identity, profile, firstMove: input.first_move }),
-  ]);
+  // Leo (Gemini) can fail — rate limit, network, bad key. Never let that lose the
+  // whole entry: fall back to a plain read and still save everything below.
+  let realization: string;
+  let manifestation: string;
+  try {
+    [realization, manifestation] = await Promise.all([
+      eveningRealization({
+        identity,
+        profile,
+        journalEntry: eveningJournal,
+        scorecardSummary: scorecardSummary(input.scorecard),
+        honestReadout: input.honest_readout,
+        checkinsSummary,
+        recentPatterns,
+      }),
+      manifestationPrompt({ identity, profile, firstMove: input.first_move }),
+    ]);
+  } catch (e) {
+    console.error("evening AI failed, saving entry anyway:", e);
+    realization =
+      "Leo couldn't reach through just now — but your entry is saved. You showed up and closed the day honestly; that's the part that counts. Come back and he'll pick it up.";
+    manifestation = input.first_move.trim()
+      ? `Close your eyes and see tomorrow's first move done: "${input.first_move.trim()}". Feel it land before you sleep.`
+      : "Picture tomorrow's first move going right. Feel it land before you sleep.";
+  }
 
   await supabase.from("journal_entries").upsert(
     {

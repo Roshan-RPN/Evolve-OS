@@ -16,6 +16,7 @@ import {
   Target,
   Gem,
   UserRound,
+  BookOpen,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -45,6 +46,7 @@ const JOURNAL: NavItem[] = [
   { href: "/morning", label: "Morning", icon: Sunrise, grad: "grad-coral" },
   { href: "/afternoon", label: "Afternoon", icon: Sun, grad: "grad-amber" },
   { href: "/evening", label: "Evening", icon: MoonStar, grad: "grad-dusk" },
+  { href: "/journal", label: "History", icon: BookOpen, grad: "grad-violet" },
 ];
 
 // Account lives at the bottom of the sidebar, after the journal section.

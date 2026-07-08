@@ -125,15 +125,23 @@ export function EveningWizard() {
   const [data, setData] = useState<EveningInput>(EMPTY);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<{ realization: string; manifestation: string } | null>(null);
+  const [submitError, setSubmitError] = useState(false);
 
   const isReview = stepIndex === STEP_TITLES.length - 1;
   const progress = result ? 100 : ((stepIndex + 1) / STEP_TITLES.length) * 100;
 
   async function submit() {
     setSubmitting(true);
-    const res = await submitEveningEntry(data);
-    setResult(res);
-    setSubmitting(false);
+    setSubmitError(false);
+    try {
+      const res = await submitEveningEntry(data);
+      setResult(res);
+    } catch (e) {
+      console.error("evening submit failed:", e);
+      setSubmitError(true);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   if (result) {
@@ -519,8 +527,13 @@ export function EveningWizard() {
                     </p>
                   </div>
                   <Button className="h-12 w-full text-[15px] font-semibold" onClick={submit} disabled={submitting}>
-                    {submitting ? "Reflecting..." : "Submit tonight's entry"}
+                    {submitting ? "Reflecting..." : submitError ? "Try again" : "Submit tonight's entry"}
                   </Button>
+                  {submitError && (
+                    <p className="text-center text-sm font-medium text-destructive">
+                      Couldn&apos;t submit — your writing is still here. Check your connection and tap Try again.
+                    </p>
+                  )}
                 </div>
               )}
             </CardContent>
