@@ -208,7 +208,7 @@ Two follow-up commits *(7 Jul)* on the midday-reset "Where they stand" step:
 
 ## 12. Journal never lost + history viewer
 
-**`PENDING` · Resilient journal submit + read-back history** *(8 Jul)*
+**`fc79ae7` · Resilient journal submit + read-back history** *(8 Jul)*
 
 **The bug (why last night's evening journal wouldn't submit):** every journal
 submit was *AI-first* — it called Leo (Gemini) **before** writing anything to the
@@ -249,7 +249,7 @@ issue), the whole action threw: **nothing was saved** and the button hung on
 | "Enable notifications" button re-nagging | `0e506bf` |
 | Push failures silently swallowed | `0e506bf` |
 | Afternoon "Not yet" looked unselectable | `6c23f90` |
-| Journal submit lost the entry + hung when Leo/Gemini failed | `PENDING` |
+| Journal submit lost the entry + hung when Leo/Gemini failed | `fc79ae7` |
 
 ## Database migration trail
 
