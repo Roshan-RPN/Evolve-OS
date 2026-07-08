@@ -237,7 +237,7 @@ issue), the whole action threw: **nothing was saved** and the button hung on
 
 ## 13. Leo stopped going silent on transient Gemini blips
 
-**`PENDING` · Retry Gemini + guard empty reads** *(8 Jul)*
+**`33014bc` · Retry Gemini + guard empty reads** *(8 Jul)*
 
 **The bug (why Leo didn't respond to a morning entry):** Google's free-tier
 `gemini-2.5-flash` was intermittently returning **`503 UNAVAILABLE` — "model
@@ -281,8 +281,8 @@ lock-in had written no row at all.
 | Push failures silently swallowed | `0e506bf` |
 | Afternoon "Not yet" looked unselectable | `6c23f90` |
 | Journal submit lost the entry + hung when Leo/Gemini failed | `fc79ae7` |
-| Leo went silent on transient Gemini 503s (no retry) + blank on empty reads | `PENDING` |
-| Lock-in save lost on a network blip + swallowed DB errors (no `.error` check/retry) | `PENDING` |
+| Leo went silent on transient Gemini 503s (no retry) + blank on empty reads | `33014bc` |
+| Lock-in save lost on a network blip + swallowed DB errors (no `.error` check/retry) | `33014bc` |
 
 ## Database migration trail
 
