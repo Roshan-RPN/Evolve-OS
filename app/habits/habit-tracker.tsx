@@ -8,11 +8,13 @@ import {
   toggleHabitToday,
   logHabitMinutes,
   suggestHabitsForVision,
+  updateHabit,
+  archiveHabit,
   type Habit,
   type TimeOfDay,
 } from "@/lib/actions/habits";
 import type { SuggestedHabit } from "@/lib/ai/coach";
-import { Flame, Plus, Sparkles, Loader2, Sunrise, Sun, Moon, Clock, Lock, Link2, Check, Archive, Hourglass, Info } from "lucide-react";
+import { Flame, Plus, Sparkles, Loader2, Sunrise, Sun, Moon, Clock, Lock, Link2, Check, Archive, Hourglass, Info, Pencil, Trash2, X } from "lucide-react";
 import { HABIT_ICONS, iconFor } from "@/lib/habit-icons";
 import { HABIT_COLORS, habitColorValue } from "@/lib/habit-colors";
 
@@ -81,6 +83,20 @@ export function HabitTracker({ habits, backlog, completedTodayIds, minutesToday,
     startTransition(() => {
       void logHabitMinutes(id, value);
     });
+  }
+
+  function editHabit(id: string, patch: { name: string; anchor: string; time_of_day: TimeOfDay }) {
+    setItems((prev) =>
+      prev.map((h) =>
+        h.id === id ? { ...h, name: patch.name, anchor: patch.anchor.trim() || null, time_of_day: patch.time_of_day } : h
+      )
+    );
+    startTransition(() => updateHabit(id, patch));
+  }
+
+  function removeHabit(id: string) {
+    setItems((prev) => prev.filter((h) => h.id !== id));
+    startTransition(() => archiveHabit(id));
   }
 
   function optimisticAdd(h: { name: string; anchor: string; time_of_day: TimeOfDay; origin: "self" | "leo"; icon?: string | null; color?: string | null }) {
@@ -246,6 +262,8 @@ export function HabitTracker({ habits, backlog, completedTodayIds, minutesToday,
                   minutes={minutes[h.id] ?? null}
                   onToggle={toggle}
                   onSetMinutes={setHabitMinutes}
+                  onEdit={editHabit}
+                  onDelete={removeHabit}
                   dots={heatmap[h.id]}
                 />
               ))}
@@ -445,6 +463,8 @@ function HabitRow({
   minutes,
   onToggle,
   onSetMinutes,
+  onEdit,
+  onDelete,
   dots,
 }: {
   habit: Habit;
@@ -454,8 +474,16 @@ function HabitRow({
   minutes: number | null;
   onToggle: (id: string, checked: boolean) => void;
   onSetMinutes: (id: string, minutes: number | null) => void;
+  onEdit: (id: string, patch: { name: string; anchor: string; time_of_day: TimeOfDay }) => void;
+  onDelete: (id: string) => void;
   dots?: boolean[];
 }) {
+  const [editing, setEditing] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [draftName, setDraftName] = useState(habit.name);
+  const [draftAnchor, setDraftAnchor] = useState(habit.anchor ?? "");
+  const [draftTod, setDraftTod] = useState<TimeOfDay>(habit.time_of_day ?? "anytime");
+
   const locked = habit.type === "identity" && habit.streak >= 10;
   const chips = habit.target_minutes && !MINUTE_CHIPS.includes(habit.target_minutes)
     ? [...MINUTE_CHIPS, habit.target_minutes].sort((a, b) => a - b)
@@ -468,6 +496,88 @@ function HabitRow({
   const tint = habitColorValue(habit.color);
   const litClass = tint ? "text-white" : `${grad} text-white`;
   const litStyle = tint ? { backgroundColor: tint } : undefined;
+
+  function openEdit() {
+    setDraftName(habit.name);
+    setDraftAnchor(habit.anchor ?? "");
+    setDraftTod(habit.time_of_day ?? "anytime");
+    setConfirmDelete(false);
+    setEditing(true);
+  }
+
+  function saveEdit() {
+    if (!draftName.trim()) return;
+    onEdit(habit.id, { name: draftName.trim(), anchor: draftAnchor, time_of_day: draftTod });
+    setEditing(false);
+  }
+
+  if (editing) {
+    return (
+      <div className="space-y-2.5 rounded-2xl border border-primary/40 bg-primary/[0.04] p-3">
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-xs font-semibold text-muted-foreground">Edit habit</p>
+          <button
+            onClick={() => setEditing(false)}
+            aria-label="Cancel edit"
+            className="grid size-6 place-items-center rounded-full text-muted-foreground hover:bg-muted"
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
+        <input
+          value={draftName}
+          onChange={(e) => setDraftName(e.target.value)}
+          placeholder="Habit name"
+          className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm outline-none focus:border-primary"
+        />
+        <div className="flex items-center gap-2">
+          <Link2 className="size-4 shrink-0 text-muted-foreground" />
+          <input
+            value={draftAnchor}
+            onChange={(e) => setDraftAnchor(e.target.value)}
+            placeholder="After… (anchor)"
+            className="w-full rounded-xl border border-border/60 bg-card px-3 py-2 text-sm outline-none focus:border-primary"
+          />
+        </div>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {STACKS.map((s) => (
+            <button
+              key={s.key}
+              type="button"
+              onClick={() => setDraftTod(s.key)}
+              className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                draftTod === s.key ? `${s.grad} text-white` : "bg-muted text-muted-foreground"
+              }`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 pt-1">
+          {confirmDelete ? (
+            <>
+              <span className="text-xs font-medium text-red-500">Delete this habit?</span>
+              <Button size="sm" variant="destructive" className="ml-auto" onClick={() => onDelete(habit.id)}>
+                Confirm delete
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" variant="outline" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="mr-1 size-3.5" /> Delete
+              </Button>
+              <Button size="sm" className="ml-auto" onClick={saveEdit} disabled={!draftName.trim()}>
+                Save
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -507,6 +617,14 @@ function HabitRow({
             )}
           </p>
         </div>
+        {/* edit — opens the inline edit panel (name, anchor, time-of-day, delete) */}
+        <button
+          onClick={openEdit}
+          aria-label="Edit habit"
+          className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground/50 transition-colors hover:bg-muted hover:text-foreground"
+        >
+          <Pencil className="size-3.5" />
+        </button>
         {/* the tick — a real checkbox circle, always visible */}
         <button
           onClick={() => onToggle(habit.id, !checked)}

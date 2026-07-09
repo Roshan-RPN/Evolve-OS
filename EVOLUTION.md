@@ -398,6 +398,22 @@ Note: the 8 Jul "empty Leo read" (Gemini key) was a *separate, real* issue but
 was never the submit blocker — this was. Keys/models are per-user by design
 (`app_users.gemini_api_key` + `gemini_model`, set on /profile).
 
+## 14. Habit edit & delete
+
+**Uncommitted** *(9 Jul)*
+- **Bug:** the habits page had no way to rename a habit, move it between
+  morning/afternoon/evening/anytime stacks, or remove one — `addHabit` existed
+  but there was no `updateHabit`/delete action at all, and `HabitRow` had no
+  edit affordance.
+- **Fix:** added `updateHabit()` and `archiveHabit()` to
+  [`lib/actions/habits.ts`](lib/actions/habits.ts). Delete is a soft
+  archive (`status = 'archived'`), not a hard row delete — `habit_logs` rows
+  reference the habit by id with no cascade, and `getHabitDashboard()` already
+  filters out archived habits, so archiving just makes it disappear cleanly
+  without touching streak history. [`HabitRow`](app/habits/habit-tracker.tsx)
+  now has a pencil button that opens an inline edit panel (name, anchor,
+  time-of-day pills, delete-with-confirm).
+
 ## Where it stands now (latest)
 
 Newest change (uncommitted): Leo now retries transient Gemini `503 "high demand"`

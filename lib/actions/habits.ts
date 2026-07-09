@@ -189,6 +189,37 @@ export async function addHabit(name: string, opts: AddHabitOptions = {}) {
   revalidatePath("/habits");
 }
 
+export async function updateHabit(
+  habitId: string,
+  patch: { name?: string; anchor?: string | null; time_of_day?: TimeOfDay; icon?: string | null; color?: string | null }
+) {
+  const userId = await getUserId();
+  if (!(await ownsHabit(habitId, userId))) return;
+  const supabase = createServerClient();
+  const update: Record<string, unknown> = {};
+  if (patch.name !== undefined) update.name = patch.name;
+  if (patch.anchor !== undefined) update.anchor = patch.anchor?.trim() || null;
+  if (patch.time_of_day !== undefined) update.time_of_day = patch.time_of_day;
+  if (patch.icon !== undefined) update.icon = patch.icon;
+  if (patch.color !== undefined) update.color = patch.color;
+  if (Object.keys(update).length === 0) return;
+  await supabase.from("habits").update(update).eq("id", habitId).eq("user_id", userId);
+  revalidatePath("/habits");
+  revalidatePath("/analytics");
+}
+
+// Soft delete: mark archived rather than hard-deleting, since habit_logs rows
+// reference the habit by id and dropping it would orphan/break streak history.
+// getHabitDashboard already filters status != 'archived', so it just disappears.
+export async function archiveHabit(habitId: string) {
+  const userId = await getUserId();
+  if (!(await ownsHabit(habitId, userId))) return;
+  const supabase = createServerClient();
+  await supabase.from("habits").update({ status: "archived" }).eq("id", habitId).eq("user_id", userId);
+  revalidatePath("/habits");
+  revalidatePath("/analytics");
+}
+
 export async function suggestHabitsForVision(): Promise<SuggestedHabit[]> {
   const userId = await getUserId();
   const supabase = createServerClient();
