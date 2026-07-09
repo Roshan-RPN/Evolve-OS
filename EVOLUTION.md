@@ -155,6 +155,16 @@ A run of visual-identity tweaks:
   [`components/enable-push-button.tsx`](components/enable-push-button.tsx)
   keeps a "Tap to re-sync" button visible even when already "enabled" — so a
   future key rotation is a button tap, not a browser-settings hunt.
+- **Follow-up 2, `f510e33`:** still no notifications after the above. Two more
+  bugs found: (1) the "enabled" state showed a text line *and* a button,
+  which read as two separate controls — collapsed to one button whose label
+  changes with state. (2) The real bug:
+  [`enablePushNotifications()`](lib/push-client.ts) posted the subscription
+  to `/api/push/subscribe` but never checked the response. Browser-level
+  subscribe can succeed while the server-side save 401s or throws — so the
+  button said "enabled" with zero errors shown, but no row ever landed in
+  `push_subscriptions`, so nothing could ever be sent. Now a failed save
+  throws and shows as a visible error under the button.
 
 ---
 
