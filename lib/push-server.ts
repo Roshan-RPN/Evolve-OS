@@ -2,14 +2,26 @@ import webpush from "web-push";
 import { createServerClient } from "@/lib/supabase/server";
 
 let configured = false;
-function ensureConfigured() {
-  if (configured) return;
-  webpush.setVapidDetails(
-    process.env.VAPID_SUBJECT || "mailto:you@example.com",
-    process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
-    process.env.VAPID_PRIVATE_KEY!
-  );
-  configured = true;
+let configError: string | null = null;
+// setVapidDetails throws synchronously on a malformed key. Catch it here so a
+// bad/missing VAPID key fails just this push (as an error result) instead of
+// crashing the whole cron route for every user in the loop.
+function ensureConfigured(): string | null {
+  if (configured) return null;
+  if (configError) return configError;
+  try {
+    webpush.setVapidDetails(
+      process.env.VAPID_SUBJECT || "mailto:you@example.com",
+      process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
+      process.env.VAPID_PRIVATE_KEY!
+    );
+    configured = true;
+    return null;
+  } catch (err) {
+    configError = err instanceof Error ? err.message : String(err);
+    console.error("[push] VAPID config invalid", configError);
+    return configError;
+  }
 }
 
 type PushPayload = { title: string; body: string; url?: string };
@@ -19,7 +31,8 @@ type SubRow = { endpoint: string; p256dh: string; auth: string };
 export type PushResult = { subs: number; sent: number; errors: string[] };
 
 async function send(subs: SubRow[], payload: PushPayload): Promise<PushResult> {
-  ensureConfigured();
+  const err = ensureConfigured();
+  if (err) return { subs: subs.length, sent: 0, errors: subs.map(() => `vapid config: ${err}`) };
   const supabase = createServerClient();
   const errors: string[] = [];
   let sent = 0;

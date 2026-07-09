@@ -125,6 +125,27 @@ A run of visual-identity tweaks:
   to every device now, reporting exactly how many went out — so delivery can be
   verified.
 
+**Uncommitted · VAPID key crash + rotation** *(9 Jul)*
+- **Bug:** `/api/cron/reminders?type=afternoon` 500'd for every user once the
+  first real push subscription hit it. Vercel logs pinned it exactly: `Error:
+  Vapid public key should be 65 bytes long when decoded`, thrown inside
+  `webpush.setVapidDetails()` in [`lib/push-server.ts`](lib/push-server.ts).
+  That call sat outside any try/catch, so one bad key crashed the whole cron
+  route instead of just failing that user's push.
+- **Why it looked like a regression:** the entire push stack
+  (`lib/push-server.ts`, the subscribe route, `push_subscriptions` schema) was
+  introduced fresh in the `db006fb` multi-user rewrite (6 Jul). The corrupted
+  `NEXT_PUBLIC_VAPID_PUBLIC_KEY` had been sitting broken in Vercel since that
+  day — it just never got exercised because subscriptions reset with the
+  rewrite and nobody had re-enabled push on the new app until now.
+- **Fix:** `ensureConfigured()` now catches the `setVapidDetails` throw and
+  returns it as a per-call error result (`errors: ["vapid config: …"]`)
+  instead of letting it escape — a bad key fails gracefully, cron keeps
+  running for every other user. Regenerated a fresh matched VAPID key pair and
+  replaced `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` in Vercel
+  (Production + Preview). Both of you will need to hit "Enable notifications"
+  again after this deploy — old subscriptions were signed against the dead key.
+
 ---
 
 ## 7. Journals expanded
