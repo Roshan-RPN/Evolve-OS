@@ -90,6 +90,7 @@
   --coral: oklch(0.7 0.17 40);
   --red: oklch(0.58 0.2 27);
   --bronze: oklch(0.54 0.1 56);
+  --navy: oklch(0.5 0.1 256); /* evening-journal accent — matches the home page evening card hue */
 
   /* Month map — modern single-hue depth scale (pale blue → deep blue), green = perfect day */
   --map-1: oklch(0.93 0.035 245);
@@ -230,6 +231,10 @@
   .solid-bronze  { background-color: oklch(0.52 0.1 56); }
   .solid-slate   { background-color: oklch(0.48 0.035 256); }
   .solid-forest  { background-color: oklch(0.52 0.11 160); }
+  /* Evening journal — same deep navy as the home page evening card */
+  .solid-evening { background-color: oklch(0.36 0.1 256); }
+  /* "Anytime" habit stack — greenish blue, sits between solid-teal and solid-blue */
+  .solid-seafoam { background-color: oklch(0.64 0.12 200); }
 
   /* Premium primary button — solid greenish-blue, glassy inset + soft glow (no gradient) */
   .btn-blue-pro {

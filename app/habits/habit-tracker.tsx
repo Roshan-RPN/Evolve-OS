@@ -35,11 +35,12 @@ function fmtMinutes(m: number) {
   return r ? `${h}h ${r}m` : `${h}h`;
 }
 
+// Matches the home page's morning/afternoon/evening journal colors; anytime gets its own greenish-blue.
 const STACKS: { key: TimeOfDay; label: string; icon: typeof Sun; grad: string }[] = [
-  { key: "morning", label: "Morning", icon: Sunrise, grad: "grad-coral" },
-  { key: "afternoon", label: "Afternoon", icon: Sun, grad: "grad-teal" },
-  { key: "evening", label: "Evening", icon: Moon, grad: "grad-dusk" },
-  { key: "anytime", label: "Anytime", icon: Clock, grad: "grad-blue" },
+  { key: "morning", label: "Morning", icon: Sunrise, grad: "solid-coral" },
+  { key: "afternoon", label: "Afternoon", icon: Sun, grad: "solid-bronze" },
+  { key: "evening", label: "Evening", icon: Moon, grad: "solid-evening" },
+  { key: "anytime", label: "Anytime", icon: Clock, grad: "solid-seafoam" },
 ];
 
 export function HabitTracker({ habits, backlog, completedTodayIds, minutesToday, heatmap }: Props) {

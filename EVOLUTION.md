@@ -400,7 +400,7 @@ was never the submit blocker — this was. Keys/models are per-user by design
 
 ## 14. Habit edit & delete
 
-**Uncommitted** *(9 Jul)*
+**`3da8502`** *(9 Jul)*
 - **Bug:** the habits page had no way to rename a habit, move it between
   morning/afternoon/evening/anytime stacks, or remove one — `addHabit` existed
   but there was no `updateHabit`/delete action at all, and `HabitRow` had no
@@ -413,6 +413,28 @@ was never the submit blocker — this was. Keys/models are per-user by design
   without touching streak history. [`HabitRow`](app/habits/habit-tracker.tsx)
   now has a pencil button that opens an inline edit panel (name, anchor,
   time-of-day pills, delete-with-confirm).
+
+## 15. Habit stack colors, journal headings, leaner schedule step
+
+**Uncommitted** *(9 Jul)*
+- **Ask:** habit stack colors didn't match the home page's
+  morning/afternoon/evening journal colors; "anytime" had no distinct color;
+  the three journal wizards gave no clue which journal you were in beyond the
+  step title; the morning journal's schedule step (a full `TimeWheel` +
+  input + priority pills + remove button per block) read as bulky.
+- **Fix:** [`habit-tracker.tsx`](app/habits/habit-tracker.tsx)'s `STACKS` now
+  uses `solid-coral`/`solid-bronze` (same classes the home page uses for the
+  morning/afternoon journal links), a new `solid-evening` (matches home's
+  evening card navy) and a new `solid-seafoam` (greenish-blue) for anytime —
+  both added to [`globals.css`](app/globals.css). Each journal wizard
+  ([`morning-wizard.tsx`](app/morning/morning-wizard.tsx),
+  [`afternoon-wizard.tsx`](app/afternoon/afternoon-wizard.tsx),
+  [`evening-wizard.tsx`](app/evening/evening-wizard.tsx)) now shows a colored
+  "Morning/Afternoon/Evening Journal" label above the step counter. The
+  morning wizard's schedule step now collapses each block's `TimeWheel`
+  behind a tap-to-open time chip instead of always rendering it, and swaps
+  the full-width "Remove" button for a small trash icon — same data, far
+  less vertical space per block.
 
 ## Where it stands now (latest)
 

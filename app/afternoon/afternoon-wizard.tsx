@@ -206,6 +206,9 @@ export function AfternoonWizard({
       <div className="space-y-2.5">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--bronze)]">
+              <Sun className="size-3.5" /> Afternoon Journal
+            </p>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
               Step {stepIndex + 1} of {STEP_TITLES.length}
             </p>

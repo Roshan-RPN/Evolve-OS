@@ -23,6 +23,7 @@ import {
   ListChecks,
   CalendarClock,
   ScrollText,
+  Trash2,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { CloseButton } from "@/components/close-button";
@@ -128,6 +129,7 @@ export function MorningWizard() {
   const [lockError, setLockError] = useState(false);
   const [lockErrorDetail, setLockErrorDetail] = useState<string | null>(null);
   const [story, setStory] = useState<string | null>(null);
+  const [openWheelIndex, setOpenWheelIndex] = useState<number | null>(null);
 
   const isReview = stepIndex === STEP_TITLES.length - 1;
   const progress = story ? 100 : ((stepIndex + 1) / STEP_TITLES.length) * 100;
@@ -231,6 +233,9 @@ export function MorningWizard() {
       <div className="space-y-2">
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-widest text-[var(--coral)]">
+              <Sunrise className="size-3.5" /> Morning Journal
+            </p>
             <p className="text-[11px] font-semibold uppercase tracking-wider text-primary/80">
               Step {stepIndex + 1} of {STEP_TITLES.length}
             </p>
@@ -517,70 +522,90 @@ export function MorningWizard() {
                     title="PLAN THE HOURS"
                     sub="Give the day real time slots — set a time and name what you'll do in it."
                   />
-                  {data.schedule.map((s, i) => (
-                    <div key={i} className="flex items-start gap-2 rounded-2xl border border-border/60 bg-muted/30 p-2.5">
-                      <TimeWheel
-                        value={s.time || "09:00"}
-                        onChange={(v) => {
-                          const next = [...data.schedule];
-                          next[i] = { ...next[i], time: v };
-                          setData({ ...data, schedule: next });
-                        }}
-                      />
-                      <div className="flex flex-1 flex-col gap-2">
-                        <Input
-                          value={s.block}
-                          onChange={(e) => {
-                            const next = [...data.schedule];
-                            next[i] = { ...next[i], block: e.target.value };
-                            setData({ ...data, schedule: next });
-                          }}
-                          placeholder="e.g. Deep work — write the report"
-                        />
-                        {/* priority — same colors as the Schedule page, saved with the block so both stay in sync */}
-                        <div className="flex flex-wrap gap-1.5">
-                          {PRIORITIES.map((x) => {
-                            const active = (s.priority ?? 2) === x.p;
-                            return (
-                              <button
-                                key={x.p}
-                                type="button"
-                                onClick={() => {
-                                  const next = [...data.schedule];
-                                  next[i] = { ...next[i], priority: x.p };
-                                  setData({ ...data, schedule: next });
-                                }}
-                                className={`prio-${x.p} inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
-                                  active ? "prio-chip scale-105" : "bg-muted text-muted-foreground"
-                                }`}
-                                title={x.desc}
-                              >
-                                <span className="prio-dot size-1.5 rounded-full" />
-                                {x.label}
-                              </button>
-                            );
-                          })}
+                  <div className="space-y-2">
+                    {data.schedule.map((s, i) => {
+                      const wheelOpen = openWheelIndex === i;
+                      return (
+                        <div key={i} className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-2.5">
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setOpenWheelIndex(wheelOpen ? null : i)}
+                              className={`shrink-0 rounded-xl border px-2.5 py-2 font-mono text-xs font-bold tabular-nums transition-colors ${
+                                wheelOpen
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border/60 bg-card text-foreground hover:border-primary/40"
+                              }`}
+                            >
+                              {s.time || "09:00"}
+                            </button>
+                            <Input
+                              value={s.block}
+                              onChange={(e) => {
+                                const next = [...data.schedule];
+                                next[i] = { ...next[i], block: e.target.value };
+                                setData({ ...data, schedule: next });
+                              }}
+                              placeholder="e.g. Deep work — write the report"
+                              className="h-9 flex-1"
+                            />
+                            <button
+                              type="button"
+                              aria-label="Remove block"
+                              onClick={() => {
+                                setData({ ...data, schedule: data.schedule.filter((_, j) => j !== i) });
+                                setOpenWheelIndex(null);
+                              }}
+                              className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground/50 transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                          {wheelOpen && (
+                            <TimeWheel
+                              value={s.time || "09:00"}
+                              onChange={(v) => {
+                                const next = [...data.schedule];
+                                next[i] = { ...next[i], time: v };
+                                setData({ ...data, schedule: next });
+                              }}
+                            />
+                          )}
+                          {/* priority — same colors as the Schedule page, saved with the block so both stay in sync */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {PRIORITIES.map((x) => {
+                              const active = (s.priority ?? 2) === x.p;
+                              return (
+                                <button
+                                  key={x.p}
+                                  type="button"
+                                  onClick={() => {
+                                    const next = [...data.schedule];
+                                    next[i] = { ...next[i], priority: x.p };
+                                    setData({ ...data, schedule: next });
+                                  }}
+                                  className={`prio-${x.p} inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold transition-all ${
+                                    active ? "prio-chip scale-105" : "bg-muted text-muted-foreground"
+                                  }`}
+                                  title={x.desc}
+                                >
+                                  <span className="prio-dot size-1.5 rounded-full" />
+                                  {x.label}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="self-end text-muted-foreground"
-                          type="button"
-                          onClick={() =>
-                            setData({ ...data, schedule: data.schedule.filter((_, j) => j !== i) })
-                          }
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                      );
+                    })}
+                  </div>
                   <Button
                     variant="outline"
                     type="button"
-                    onClick={() =>
-                      setData({ ...data, schedule: [...data.schedule, { time: "09:00", block: "", priority: 2 }] })
-                    }
+                    onClick={() => {
+                      setData({ ...data, schedule: [...data.schedule, { time: "09:00", block: "", priority: 2 }] });
+                      setOpenWheelIndex(data.schedule.length);
+                    }}
                   >
                     + Add block
                   </Button>
