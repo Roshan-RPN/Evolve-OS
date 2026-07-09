@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Loader2, MessagesSquare, SendHorizonal } from "lucide-react";
 import { CoachAvatar } from "@/components/coach-avatar";
-import { askLeoFollowUp, type CoachChatMsg } from "@/lib/actions/coach";
+import { askLeoFollowUp } from "@/lib/actions/coach";
+import type { CoachChatMsg } from "@/lib/ai/coach";
 
 const MAX_ROUNDS = 10;
 

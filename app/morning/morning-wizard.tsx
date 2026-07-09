@@ -126,6 +126,7 @@ export function MorningWizard() {
   const [loadingCritique, setLoadingCritique] = useState(false);
   const [locking, setLocking] = useState(false);
   const [lockError, setLockError] = useState(false);
+  const [lockErrorDetail, setLockErrorDetail] = useState<string | null>(null);
   const [story, setStory] = useState<string | null>(null);
 
   const isReview = stepIndex === STEP_TITLES.length - 1;
@@ -154,6 +155,7 @@ export function MorningWizard() {
   async function lockIn() {
     setLocking(true);
     setLockError(false);
+    setLockErrorDetail(null);
     try {
       const result = await submitMorningEntry({
         ...data,
@@ -164,6 +166,9 @@ export function MorningWizard() {
     } catch (e) {
       console.error("morning lock-in failed:", e);
       setLockError(true);
+      // Surface the real reason (DB/network) so a stuck lock-in is diagnosable
+      // instead of hiding behind a generic "check your connection" line.
+      setLockErrorDetail(e instanceof Error ? e.message : String(e));
     } finally {
       setLocking(false);
     }
@@ -619,9 +624,16 @@ export function MorningWizard() {
                     {locking ? "Locking in..." : lockError ? "Try again" : "Lock it in"}
                   </Button>
                   {lockError && (
-                    <p className="text-center text-sm font-medium text-destructive">
-                      Couldn&apos;t lock in — your plan is still here. Check your connection and tap Try again.
-                    </p>
+                    <div className="space-y-1 text-center">
+                      <p className="text-sm font-medium text-destructive">
+                        Couldn&apos;t lock in — your plan is still here. Check your connection and tap Try again.
+                      </p>
+                      {lockErrorDetail && (
+                        <p className="break-words text-[11px] font-normal text-muted-foreground">
+                          {lockErrorDetail}
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               )}

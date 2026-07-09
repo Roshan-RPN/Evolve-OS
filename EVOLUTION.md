@@ -266,6 +266,20 @@ failures with backoff **and** throws on a persistent error, so the UI honestly
 shows "Try again" instead of faking a save. Confirmed via the DB: the failed
 lock-in had written no row at all.
 
+**Follow-up — lock-in *still* failing after the retry fix (`PENDING`):** re-tested
+the exact `plans` + `journal_entries` upserts against the live database with the
+current `.env.local` service-role key — **both succeeded**. So the DB, the schema
+(the `(user_id, date)` unique indexes from migration 0008 are present), and the
+credentials are all fine locally. The persistent failure is **environment**, not
+code: either the deployed (Vercel) `SUPABASE_SERVICE_ROLE_KEY` doesn't match the
+key that works locally (Supabase's new `sb_secret_…` keys replaced the legacy
+`eyJ…` JWT keys — rotating locally without updating Vercel breaks prod writes), or
+a local `next dev` was still holding a stale env after `.env.local` changed (only a
+full dev-server restart reloads it). The lock-in screen now **prints the real error
+text** under the generic message (`e.message`, e.g. `lock plan failed after 3
+attempts: …`) so the true reason is visible instead of hidden behind "check your
+connection".
+
 ## Bug fixes at a glance
 
 | Bug | Fixed in |
@@ -283,6 +297,7 @@ lock-in had written no row at all.
 | Journal submit lost the entry + hung when Leo/Gemini failed | `fc79ae7` |
 | Leo went silent on transient Gemini 503s (no retry) + blank on empty reads | `33014bc` |
 | Lock-in save lost on a network blip + swallowed DB errors (no `.error` check/retry) | `33014bc` |
+| Lock-in still failing = env, not code (prod service-role key mismatch); now shows real error | `PENDING` |
 
 ## Database migration trail
 
@@ -294,6 +309,53 @@ email unique · `0013` **enable RLS** · `0014` per-user Gemini model · `0016`
 check-in "later" constraint.
 
 ---
+
+## Deep dive — "Couldn't lock in" + empty Leo read *(8 Jul)*
+
+Root cause found by direct diagnostic (live Gemini call + live DB write, no
+guessing): **`GEMINI_API_KEY` in `.env.local` was empty** (length 0). Every Leo
+call hit Gemini `403 PERMISSION_DENIED` ("use API Key"), so the morning "Leo's
+read on today's plan" came back blank. The DB write path itself was proven
+healthy (a real `plans` upsert succeeded in the test), and the service-role key
+is valid (prod pages render past `getUserId`), so earlier "Vercel key mismatch"
+and "DB failure" theories were both wrong. Git tree was clean — no tampering, no
+stray edits to `.env.local`.
+
+Secondary reliability fix: `GEMINI_MODEL` was `gemini-2.5-pro`, a *thinking*
+model that can burn its whole output budget on reasoning and return a 200 with
+no text (→ treated as failure). Switched default to **`gemini-2.5-flash`**.
+
+Fix = repopulate `GEMINI_API_KEY` locally and on Vercel; model set to flash.
+
+## Deep dive — the REAL submit blocker: `CoachChatMsg is not defined` *(9 Jul)*
+
+The "can't submit morning/afternoon/evening" bug (for every user, not just the
+owner) was **not** the Gemini key and **not** the DB. Vercel runtime logs showed
+the truth: `POST /morning` returned **500** with
+`ReferenceError: CoachChatMsg is not defined` at module evaluation.
+
+Root cause: [`lib/actions/coach.ts`](lib/actions/coach.ts) is a `"use server"`
+file, and a `"use server"` module may export **only async functions**. It had
+`export type { CoachChatMsg };` — a re-export of an imported type. Turbopack's
+server-action transform enumerates every export to build action proxies and
+emitted a *runtime* reference to `CoachChatMsg`, which is a type (erased at
+compile) → `ReferenceError` the moment the module is evaluated. Since the
+morning/afternoon/evening pages import `LeoFollowup` → `@/lib/actions/coach`,
+that broken module 500'd the whole route, so the form could never submit and Leo
+could never be reached. (Local `export type Foo = {…}` *declarations* in the
+other action files are fine — only the imported-type **re-export** breaks.)
+
+Fix:
+- Removed `export type { CoachChatMsg }` from the `"use server"` file.
+- [`components/leo-followup.tsx`](components/leo-followup.tsx) now imports the
+  type straight from `@/lib/ai/coach` via `import type` (fully erased, pulls no
+  server-only runtime into the client bundle).
+- Verified: `tsc --noEmit` clean and `next build` compiles all routes
+  (`/morning`, `/afternoon`, `/evening`) with no ReferenceError.
+
+Note: the 8 Jul "empty Leo read" (Gemini key) was a *separate, real* issue but
+was never the submit blocker — this was. Keys/models are per-user by design
+(`app_users.gemini_api_key` + `gemini_model`, set on /profile).
 
 ## Where it stands now (latest)
 
