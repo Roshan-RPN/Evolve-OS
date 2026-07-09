@@ -35,11 +35,15 @@ export async function enablePushNotifications() {
     applicationServerKey: urlBase64ToUint8Array(publicKey),
   });
 
-  await fetch("/api/push/subscribe", {
+  const res = await fetch("/api/push/subscribe", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(subscription),
   });
+  // Browser-level subscribe can succeed while the server-side save fails (not
+  // logged in, DB error, etc). Without this check that failure was silent —
+  // button says "enabled" forever, but no row ever lands in push_subscriptions.
+  if (!res.ok) throw new Error(`Saving subscription failed (${res.status}). Try logging in again.`);
 
   return subscription;
 }
