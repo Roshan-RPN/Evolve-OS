@@ -145,6 +145,16 @@ A run of visual-identity tweaks:
   replaced `NEXT_PUBLIC_VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` in Vercel
   (Production + Preview). Both of you will need to hit "Enable notifications"
   again after this deploy — old subscriptions were signed against the dead key.
+- **Follow-up:** rotating the key left every existing subscription 403'ing
+  forever (a subscription is bound to the key it was created with — you can't
+  resubscribe over it, the browser throws "different applicationServerKey
+  already exists"). Two more fixes: (1) `send()` now treats 403 the same as
+  404/410 and deletes the dead row instead of retrying it forever; (2)
+  [`lib/push-client.ts`](lib/push-client.ts) now unsubscribes any existing
+  subscription before subscribing fresh, and
+  [`components/enable-push-button.tsx`](components/enable-push-button.tsx)
+  keeps a "Tap to re-sync" button visible even when already "enabled" — so a
+  future key rotation is a button tap, not a browser-settings hunt.
 
 ---
 

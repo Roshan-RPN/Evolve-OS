@@ -47,7 +47,15 @@ export function EnablePushButton() {
   if (status === "checking") return null;
 
   if (status === "enabled") {
-    return <p className="text-center text-xs text-muted-foreground">Notifications enabled on this device.</p>;
+    return (
+      <div className="space-y-1 text-center">
+        <p className="text-xs text-muted-foreground">Notifications enabled on this device.</p>
+        <Button variant="ghost" size="sm" onClick={handleClick}>
+          Not receiving them? Tap to re-sync
+        </Button>
+        {error && <p className="text-xs text-red-500">{error}</p>}
+      </div>
+    );
   }
 
   return (

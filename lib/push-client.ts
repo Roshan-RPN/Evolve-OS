@@ -21,6 +21,12 @@ export async function enablePushNotifications() {
   // ready promise — it resolves with the registration once the SW controls the page.
   const registration = await navigator.serviceWorker.ready;
 
+  // A subscription made under a previous VAPID key can't just be re-subscribed
+  // over — the browser throws "different applicationServerKey already exists".
+  // Drop any existing subscription first so this always ends up on the current key.
+  const existing = await registration.pushManager.getSubscription();
+  if (existing) await existing.unsubscribe();
+
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   if (!publicKey) throw new Error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set.");
 

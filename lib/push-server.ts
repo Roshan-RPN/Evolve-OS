@@ -49,8 +49,10 @@ async function send(subs: SubRow[], payload: PushPayload): Promise<PushResult> {
         sent++;
       } catch (err: unknown) {
         const statusCode = (err as { statusCode?: number })?.statusCode;
-        // Dead subscription — drop it so it stops counting as a device.
-        if (statusCode === 404 || statusCode === 410) {
+        // Dead subscription — drop it so it stops counting as a device. 403
+        // means the subscription was signed against a VAPID key that's since
+        // been rotated; it will never succeed, so it's dead too.
+        if (statusCode === 404 || statusCode === 410 || statusCode === 403) {
           await supabase.from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
         }
         const msg = err instanceof Error ? err.message : String(err);
