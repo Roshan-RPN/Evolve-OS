@@ -8,10 +8,8 @@ import { UntangleBoard } from "./untangle-board";
 export const dynamic = "force-dynamic";
 
 export default async function UntanglePage() {
-  const onboarded = await hasCompletedOnboarding();
+  const [onboarded, thoughts] = await Promise.all([hasCompletedOnboarding(), getThoughts()]);
   if (!onboarded) redirect("/onboarding");
-
-  const thoughts = await getThoughts();
 
   return (
     <AppShell>

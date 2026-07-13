@@ -42,11 +42,12 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ w?: string; view?: string }>;
 }) {
-  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
+  const onboardedPromise = hasCompletedOnboarding();
   const { w, view } = await searchParams;
   const mode: AnalyticsMode = view === "month" ? "month" : "week";
   const offset = Math.max(0, Number.parseInt(w ?? "0", 10) || 0);
-  const a = await getAnalytics(offset, mode);
+  const [onboarded, a] = await Promise.all([onboardedPromise, getAnalytics(offset, mode)]);
+  if (!onboarded) redirect("/onboarding");
   const focusHours = Math.round((a.totalMinutes / 60) * 10) / 10;
   // backlog habits are parked — they can't be ticked, so they don't count toward "all done"
   const tickableHabits = a.perHabit.filter((h) => h.type !== "backlog").length;

@@ -7,8 +7,11 @@ import { HabitTracker } from "./habit-tracker";
 export const dynamic = "force-dynamic";
 
 export default async function HabitsPage() {
-  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
-  const { habits, backlog, completedToday, minutesToday, heatmap } = await getHabitDashboard();
+  const [onboarded, { habits, backlog, completedToday, minutesToday, heatmap }] = await Promise.all([
+    hasCompletedOnboarding(),
+    getHabitDashboard(),
+  ]);
+  if (!onboarded) redirect("/onboarding");
 
   return (
     <AppShell>

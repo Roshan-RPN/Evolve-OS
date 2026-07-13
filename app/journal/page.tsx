@@ -10,8 +10,8 @@ import { todayISO } from "@/lib/date";
 export const dynamic = "force-dynamic";
 
 export default async function JournalHistoryPage() {
-  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
-  const days = await getJournalHistory();
+  const [onboarded, days] = await Promise.all([hasCompletedOnboarding(), getJournalHistory()]);
+  if (!onboarded) redirect("/onboarding");
   const today = todayISO();
 
   return (

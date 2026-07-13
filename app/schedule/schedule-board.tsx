@@ -3,11 +3,13 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Trash2, CalendarClock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Sparkles, Loader2, Wand2, Check } from "lucide-react";
+import { Plus, Trash2, CalendarClock, AlertTriangle, ChevronLeft, ChevronRight, Lock, Sparkles, Loader2, Wand2, Check, Sunrise } from "lucide-react";
 import { saveSchedule, planDayWithLeo, toggleScheduleDone, type ScheduleItem } from "@/lib/actions/schedule";
 import { critiqueDraftPlan } from "@/lib/actions/morning";
 import { LeoFollowup } from "@/components/leo-followup";
 import { TimeWheel } from "@/components/time-wheel";
+import { Reveal } from "@/components/motion/reveal";
+import { CountUp } from "@/components/motion/count-up";
 import { shiftISO } from "@/lib/date";
 
 const MAX_BLOCKS = 14; // a day only holds so much — hard cap to stop over-stacking
@@ -159,10 +161,10 @@ export function ScheduleBoard({
       : new Date(date + "T00:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
 
   return (
-    <div className="space-y-3.5 lg:space-y-6">
+    <Reveal className="space-y-3.5 lg:space-y-6" stagger={0.06}>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="grid size-10 place-items-center corner-cut grad-blue text-white shadow-md lg:size-11">
+          <span className="grid size-10 place-items-center corner-cut grad-blue text-white shadow-md transition-transform hover:scale-105 lg:size-11">
             <CalendarClock className="size-5" />
           </span>
           <div>
@@ -195,7 +197,13 @@ export function ScheduleBoard({
           >
             <ChevronLeft className="size-[18px]" />
           </Link>
-          <span className="min-w-20 rounded-xl border border-border/60 bg-card px-3 py-1.5 text-center text-xs font-semibold">
+          <span
+            className={`min-w-20 rounded-xl px-3 py-1.5 text-center text-xs font-semibold ${
+              dateLabel === "Today"
+                ? "grad-blue text-white shadow-md ring-2 ring-primary/30 ring-offset-2 ring-offset-background"
+                : "border border-border/60 bg-card"
+            }`}
+          >
             {chipLabel}
           </span>
           {canGoNext ? (
@@ -217,20 +225,50 @@ export function ScheduleBoard({
         </div>
       </div>
 
-      {/* Mobile day summary — quick read of how loaded the day is */}
+      {/* Day summary — quick read of how loaded the day is, same tile language as home/analytics */}
       {items.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2 lg:hidden">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-semibold shadow-sm ring-1 ring-border/60">
-            <CalendarClock className="size-3.5 text-primary" /> {items.length} block{items.length === 1 ? "" : "s"}
-          </span>
-          {p1Count > 0 && (
-            <span className="prio-1 prio-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold">
-              <span className="prio-dot size-2 rounded-full" /> {p1Count} critical
-            </span>
-          )}
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-sm ring-1 ring-border/60">
-            First at <span className="font-mono font-semibold tabular-nums text-foreground">{to24h(items[0].time)}</span>
-          </span>
+        <div className="grid grid-cols-3 gap-2 lg:gap-3">
+          <div className="tile grad-blue corner-cut p-3 lg:p-4">
+            <div className="relative z-10 flex items-center gap-2.5 lg:block">
+              <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] lg:size-9">
+                <CalendarClock className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-display text-lg font-extrabold leading-none tracking-tight drop-shadow-sm lg:mt-2 lg:text-2xl">
+                  <CountUp value={items.length} />
+                </p>
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-white/90 lg:mt-1 lg:text-xs">
+                  block{items.length === 1 ? "" : "s"}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="tile grad-coral corner-alt p-3 lg:p-4">
+            <div className="relative z-10 flex items-center gap-2.5 lg:block">
+              <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] lg:size-9">
+                <AlertTriangle className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-display text-lg font-extrabold leading-none tracking-tight drop-shadow-sm lg:mt-2 lg:text-2xl">
+                  <CountUp value={p1Count} />
+                </p>
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-white/90 lg:mt-1 lg:text-xs">critical</p>
+              </div>
+            </div>
+          </div>
+          <div className="tile grad-teal corner-cut p-3 lg:p-4">
+            <div className="relative z-10 flex items-center gap-2.5 lg:block">
+              <span className="grid size-8 shrink-0 place-items-center rounded-xl bg-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] lg:size-9">
+                <Sunrise className="size-4" />
+              </span>
+              <div className="min-w-0">
+                <p className="font-display text-lg font-extrabold leading-none tracking-tight drop-shadow-sm lg:mt-2 lg:text-2xl">
+                  {to24h(items[0].time)}
+                </p>
+                <p className="mt-0.5 truncate text-[11px] font-semibold text-white/90 lg:mt-1 lg:text-xs">first block</p>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -244,7 +282,7 @@ export function ScheduleBoard({
         </button>
       )}
       {!readOnly && (
-      <div className={`card-tint tint-indigo corner-cut space-y-3.5 p-4 sm:p-5 ${composerOpen ? "" : "hidden lg:block"}`}>
+      <div className={`card-tint tint-blue corner-cut space-y-3.5 p-4 sm:p-5 ${composerOpen ? "" : "hidden lg:block"}`}>
         <p className="flex items-center gap-1.5 text-sm font-semibold">
           <CalendarClock className="size-4 text-primary" /> Build the day
         </p>
@@ -317,18 +355,25 @@ export function ScheduleBoard({
           <button
             onClick={planWithLeo}
             disabled={leoPlanning || atCap}
-            className="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-50"
+            className="group flex w-full items-center gap-3 rounded-2xl border border-primary/30 bg-card/70 p-3.5 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 lg:gap-4 lg:p-4"
           >
-            {leoPlanning ? <Loader2 className="size-3.5 animate-spin" /> : <Wand2 className="size-3.5" />}
-            {leoPlanning
-              ? "Leo's building your day…"
-              : items.length
-                ? "Fill the gaps with Leo"
-                : "Plan my day with Leo"}
+            <span className="grid size-11 shrink-0 place-items-center rounded-xl grad-blue text-white shadow-md transition-transform group-hover:scale-105">
+              {leoPlanning ? <Loader2 className="size-5 animate-spin" /> : <Wand2 className="size-5" />}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-semibold">
+                {leoPlanning
+                  ? "Leo's building your day…"
+                  : items.length
+                    ? "Fill the gaps with Leo"
+                    : "Plan my day with Leo"}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Built from this week&apos;s plan, the month&apos;s goals and your profile — every block stays editable.
+              </span>
+            </span>
+            <Sparkles className="size-4 shrink-0 text-primary" />
           </button>
-          <p className="text-[11px] text-muted-foreground">
-            Built from this week&apos;s plan, the month&apos;s goals and your profile — not a random template. Every block stays editable.
-          </p>
           {leoPlanErr && (
             <p className="text-[11px] text-muted-foreground">Leo couldn&apos;t build it right now. Try again, or add blocks by hand.</p>
           )}
@@ -337,8 +382,11 @@ export function ScheduleBoard({
 
       {/* Timeline */}
       {items.length === 0 ? (
-        <div className="card-surface rounded-3xl p-10 text-center">
-          <p className="text-sm text-muted-foreground">
+        <div className="card-surface corner-cut flex flex-col items-center gap-3 p-10 text-center">
+          <span className="grid size-12 place-items-center corner-cut grad-blue text-white shadow-md">
+            <CalendarClock className="size-6" />
+          </span>
+          <p className="max-w-xs text-sm text-muted-foreground">
             {readOnly
               ? "Nothing was scheduled on this day."
               : "Your day is a blank canvas. Add your first time block above."}
@@ -346,7 +394,7 @@ export function ScheduleBoard({
           {!readOnly && (
             <button
               onClick={() => persist(SAMPLE_DAY)}
-              className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/15"
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary transition-colors hover:-translate-y-0.5 hover:bg-primary/15"
             >
               <Sparkles className="size-3.5" /> Start with a sample day
             </button>
@@ -405,15 +453,20 @@ export function ScheduleBoard({
 
       {/* Ask Leo — blunt read of the day's plan */}
       {!readOnly && items.length > 0 && (
-        <section className="card-elevated space-y-2 p-4">
-          <button
-            onClick={askLeo}
-            disabled={leoAsking}
-            className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
-          >
-            {leoAsking ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
-            {leoAsking ? "Leo's reading…" : leoRead ? "Ask Leo again" : "Ask Leo — is this day realistic?"}
-          </button>
+        <section className="card-elevated space-y-2.5 p-4">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-display text-base font-semibold">
+              <Sparkles className="size-4 text-primary" /> Ask Leo
+            </h2>
+            <button
+              onClick={askLeo}
+              disabled={leoAsking}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/40 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/15 disabled:opacity-60"
+            >
+              {leoAsking ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+              {leoAsking ? "Reading…" : leoRead ? "Ask again" : "Is this day realistic?"}
+            </button>
+          </div>
           {leoErr && <p className="text-[11px] text-muted-foreground">Leo couldn&apos;t reach through. Try again.</p>}
           {leoRead && (
             <p className="whitespace-pre-line rounded-2xl bg-card/70 p-3 text-sm leading-relaxed text-foreground/90">
@@ -423,6 +476,6 @@ export function ScheduleBoard({
           {leoRead && <LeoFollowup topic="today's schedule and whether it's realistic" seed={leoRead} />}
         </section>
       )}
-    </div>
+    </Reveal>
   );
 }

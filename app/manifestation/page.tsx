@@ -7,8 +7,8 @@ import { getManifestationData } from "@/lib/actions/manifestation";
 export const dynamic = "force-dynamic";
 
 export default async function ManifestationPage() {
-  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
-  const data = await getManifestationData();
+  const [onboarded, data] = await Promise.all([hasCompletedOnboarding(), getManifestationData()]);
+  if (!onboarded) redirect("/onboarding");
   return (
     <AppShell>
       <ManifestationBoard data={data} />

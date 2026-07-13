@@ -12,7 +12,7 @@ export default async function SchedulePage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
+  const onboardedPromise = hasCompletedOnboarding();
 
   const { date: requested } = await searchParams;
   const today = todayISO();
@@ -20,7 +20,8 @@ export default async function SchedulePage({
   const date = requested && requested <= today ? requested : today;
   const isToday = date === today;
 
-  const { items } = await getScheduleForDate(date);
+  const [onboarded, { items }] = await Promise.all([onboardedPromise, getScheduleForDate(date)]);
+  if (!onboarded) redirect("/onboarding");
 
   return (
     <AppShell>

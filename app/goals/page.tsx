@@ -19,26 +19,30 @@ export default async function GoalsPage({
 }: {
   searchParams: Promise<{ view?: string; week?: string }>;
 }) {
-  if (!(await hasCompletedOnboarding())) redirect("/onboarding");
+  const onboardedPromise = hasCompletedOnboarding();
 
   const { view: rawView, week } = await searchParams;
   const view: GoalsView = VIEWS.includes(rawView as GoalsView)
     ? (rawView as GoalsView)
     : "weekly";
 
-  const visions = await getVisions();
-
-  const data: GoalsBoardData = { view, visions };
+  const data: GoalsBoardData = { view, visions: { three_year: "", one_year: "" } };
+  let onboarded: boolean;
 
   if (view === "three_year") {
-    data.threeYearGoals = await getLevelGoals("three_year");
+    const [ok, visions, threeYearGoals] = await Promise.all([onboardedPromise, getVisions(), getLevelGoals("three_year")]);
+    onboarded = ok; data.visions = visions; data.threeYearGoals = threeYearGoals;
   } else if (view === "yearly") {
-    data.yearlyGoals = await getLevelGoals("yearly");
+    const [ok, visions, yearlyGoals] = await Promise.all([onboardedPromise, getVisions(), getLevelGoals("yearly")]);
+    onboarded = ok; data.visions = visions; data.yearlyGoals = yearlyGoals;
   } else if (view === "monthly") {
-    data.monthly = await getMonthlyGrid();
+    const [ok, visions, monthly] = await Promise.all([onboardedPromise, getVisions(), getMonthlyGrid()]);
+    onboarded = ok; data.visions = visions; data.monthly = monthly;
   } else {
-    data.weekly = await getWeeklyPlan(week);
+    const [ok, visions, weekly] = await Promise.all([onboardedPromise, getVisions(), getWeeklyPlan(week)]);
+    onboarded = ok; data.visions = visions; data.weekly = weekly;
   }
+  if (!onboarded) redirect("/onboarding");
 
   return (
     <AppShell>

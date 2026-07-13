@@ -39,10 +39,8 @@ import { storyForSituation } from "@/lib/stories";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const onboarded = await hasCompletedOnboarding();
+  const [onboarded, { plan, journal }] = await Promise.all([hasCompletedOnboarding(), getTodayStatus()]);
   if (!onboarded) redirect("/onboarding");
-
-  const { plan, journal } = await getTodayStatus();
   const morningDone = Boolean(plan?.locked);
   const afternoonDone = Boolean(journal?.afternoon);
   const eveningDone = Boolean(journal?.evening);
