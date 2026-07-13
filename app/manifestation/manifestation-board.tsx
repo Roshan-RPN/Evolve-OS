@@ -603,7 +603,7 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
                         <button
                           onClick={() => remove(e.id)}
                           aria-label="Remove"
-                          className="shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                          className="shrink-0 text-muted-foreground opacity-100 transition-opacity hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
                         >
                           <Trash2 className="size-4" />
                         </button>
