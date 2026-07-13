@@ -416,7 +416,7 @@ was never the submit blocker — this was. Keys/models are per-user by design
 
 ## 15. Habit stack colors, journal headings, leaner schedule step
 
-**Uncommitted** *(9 Jul)*
+**`26b056c`** *(9 Jul)*
 - **Ask:** habit stack colors didn't match the home page's
   morning/afternoon/evening journal colors; "anytime" had no distinct color;
   the three journal wizards gave no clue which journal you were in beyond the
@@ -435,6 +435,45 @@ was never the submit blocker — this was. Keys/models are per-user by design
   behind a tap-to-open time chip instead of always rendering it, and swaps
   the full-width "Remove" button for a small trash icon — same data, far
   less vertical space per block.
+
+## 16. Manifestation upload/delete, real check-in↔schedule linking, stale Leo evaluation, leave-warning, schedule UI polish
+
+**Uncommitted** *(13 Jul)*
+- **Ask:** manifestation image uploads failed silently (composer + per-goal
+  "Why I'm doing this" uploads had no error feedback); no way to delete or
+  replace the vision-board hero image or a goal's tagged image once set;
+  the check-in ↔ schedule "auto-complete" link only worked on byte-exact text
+  match so it silently never fired for reworded tasks; the morning journal's
+  Leo evaluation on the review step could go stale (edit the plan, come back,
+  still see the old read); accidentally closing a journal mid-entry lost
+  everything typed with no warning; schedule page and the morning wizard's
+  schedule step looked flat/plain.
+- **Fix:**
+  - [`manifestation.ts`](lib/actions/manifestation.ts): new `clearVisionBoard`
+    and `clearGoalImage` actions. [`manifestation-board.tsx`](app/manifestation/manifestation-board.tsx)
+    now surfaces upload failures inline (composer + goal cards), and adds a
+    "Remove" button on the hero vision board plus hover replace/delete
+    controls on each "Why I'm doing this" goal image.
+  - New [`lib/text-match.ts`](lib/text-match.ts) `tasksLink()` — loose
+    (substring, case-insensitive) match instead of exact-equality. Wired into
+    both directions of the check-in ↔ schedule mirror in
+    [`schedule.ts`](lib/actions/schedule.ts) (`toggleScheduleDone`) and
+    [`checkins.ts`](lib/actions/checkins.ts) (`respondToCheckin`), so a
+    reworded schedule block still auto-completes its check-in and vice versa.
+  - [`morning-wizard.tsx`](app/morning/morning-wizard.tsx): `goToReview` now
+    snapshots the plan (priorities/todo/schedule) it evaluated and only
+    reuses the cached Leo read when the snapshot is unchanged — any edit
+    triggers a fresh evaluation automatically.
+  - [`close-button.tsx`](components/close-button.tsx) gained an optional
+    `confirmMessage` prop (browser `confirm()` before navigating away). All
+    three journal wizards now compute `isDirty` from their draft data, pass a
+    leave-warning into the header `CloseButton`, and add a `beforeunload`
+    guard for tab-close/refresh — nothing typed is lost to a stray tap.
+  - Visual polish: [`schedule-board.tsx`](app/schedule/schedule-board.tsx)'s
+    composer gets a "Build the day" heading, timeline rows get a hover lift +
+    shadow; the morning wizard's schedule-step rows now use the same
+    priority-tinted `prio-band`/`prio-chip` styling as the Schedule page
+    instead of a flat muted box.
 
 ## Where it stands now (latest)
 

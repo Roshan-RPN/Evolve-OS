@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -144,6 +144,25 @@ export function AfternoonWizard({
   const isReview = stepIndex === STEP_TITLES.length - 1;
   const progress = result ? 100 : ((stepIndex + 1) / STEP_TITLES.length) * 100;
 
+  const isDirty =
+    !result &&
+    (data.energy.trim() !== "" ||
+      data.drift.trim() !== "" ||
+      data.honest_line.trim() !== "" ||
+      data.refocus.trim() !== "" ||
+      data.priority_progress.some((p) => p.status !== "untouched"));
+  const LEAVE_WARNING = "Leave the afternoon check-in? What you've written so far will be lost.";
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
   function setStatus(index: number, status: PriorityStatus) {
     setData((d) => ({
       ...d,
@@ -216,7 +235,7 @@ export function AfternoonWizard({
               {STEP_TITLES[stepIndex]}
             </p>
           </div>
-          <CloseButton inline />
+          <CloseButton inline confirmMessage={isDirty ? LEAVE_WARNING : undefined} />
         </div>
         <Progress value={progress} />
       </div>

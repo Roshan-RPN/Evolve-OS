@@ -16,11 +16,22 @@ function CloseIcon() {
   );
 }
 
-export function CloseButton({ inline = false }: { inline?: boolean }) {
+export function CloseButton({
+  inline = false,
+  confirmMessage,
+}: {
+  inline?: boolean;
+  // When set, asks before leaving (e.g. mid-journal with unsaved answers) —
+  // a stray tap no longer silently throws away what was typed.
+  confirmMessage?: string;
+}) {
   return (
     <Link
       href="/"
       aria-label="Close and go home"
+      onClick={(e) => {
+        if (confirmMessage && !window.confirm(confirmMessage)) e.preventDefault();
+      }}
       className={`z-10 grid size-9 shrink-0 place-items-center rounded-full border border-border/60 bg-card/80 text-muted-foreground shadow-sm backdrop-blur transition-colors hover:text-foreground ${
         inline ? "" : "absolute right-5 top-5"
       }`}

@@ -26,6 +26,8 @@ import {
   saveVisionSession,
   uploadVisionImage,
   setVisionBoard,
+  clearVisionBoard,
+  clearGoalImage,
   type ManifestEntry,
   type ManifestKind,
   type ManifestationData,
@@ -34,6 +36,8 @@ import {
   type GoalImage,
   type MoodStory,
 } from "@/lib/actions/manifestation";
+
+const UPLOAD_ERROR = "Upload failed — use a JPG, PNG, WEBP or GIF under 8MB.";
 
 const KINDS: { key: ManifestKind; label: string; grad: string; help: string }[] = [
   { key: "vision", label: "Vision", grad: "grad-blue", help: "A scene of the life you're building" },
@@ -83,11 +87,13 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
   const [heroBusy, setHeroBusy] = useState(false);
   const [heroError, setHeroError] = useState(false);
   const [goalBusy, setGoalBusy] = useState<string | null>(null);
+  const [goalError, setGoalError] = useState<string | null>(null);
   const [moodDismissed, setMoodDismissed] = useState(false);
   const [caption, setCaption] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [showImage, setShowImage] = useState(false);
   const [uploadBusy, setUploadBusy] = useState(false);
+  const [uploadError, setUploadError] = useState(false);
   const [goalId, setGoalId] = useState("");
   const [kind, setKind] = useState<ManifestKind>("vision");
   const [ritualOpen, setRitualOpen] = useState(false);
@@ -142,24 +148,46 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
   async function onGoalFile(goal: GoalImage, file: File | undefined) {
     if (!file) return;
     setGoalBusy(goal.goal_id);
+    setGoalError(null);
     const fd = new FormData();
     fd.append("file", file);
     const url = await uploadVisionImage(fd);
     if (url) {
       await addManifestation({ caption: goal.content, image_url: url, kind: "vision", goal_id: goal.goal_id });
       setGoalImages((prev) => prev.map((g) => (g.goal_id === goal.goal_id ? { ...g, image_url: url } : g)));
+    } else {
+      setGoalError(goal.goal_id);
     }
+    setGoalBusy(null);
+  }
+
+  async function removeGoalImage(goal: GoalImage) {
+    if (!goal.image_url) return;
+    setGoalBusy(goal.goal_id);
+    await clearGoalImage(goal.goal_id);
+    const removedUrl = goal.image_url;
+    setGoalImages((prev) => prev.map((g) => (g.goal_id === goal.goal_id ? { ...g, image_url: null } : g)));
+    setEntries((prev) => prev.filter((e) => !(e.goal_id === goal.goal_id && e.image_url === removedUrl)));
     setGoalBusy(null);
   }
 
   async function onComposerFile(file: File | undefined) {
     if (!file) return;
     setUploadBusy(true);
+    setUploadError(false);
     const fd = new FormData();
     fd.append("file", file);
     const url = await uploadVisionImage(fd);
     if (url) setImageUrl(url);
+    else setUploadError(true);
     setUploadBusy(false);
+  }
+
+  async function removeVisionBoard() {
+    setHeroBusy(true);
+    await clearVisionBoard();
+    setBoardUrl(null);
+    setHeroBusy(false);
   }
 
   function add() {
@@ -307,7 +335,16 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
             >
               {showImage ? "Hide link" : "or paste link"}
             </button>
+            {imageUrl && !showImage && (
+              <button
+                onClick={() => setImageUrl("")}
+                className="text-xs font-medium text-muted-foreground transition-colors hover:text-destructive"
+              >
+                Remove image
+              </button>
+            )}
           </div>
+          {uploadError && <p className="text-xs text-destructive">{UPLOAD_ERROR}</p>}
           <button
             onClick={add}
             disabled={!caption.trim()}
@@ -342,16 +379,27 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
                 <span className="pointer-events-none absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur">
                   <ZoomIn className="size-3.5" /> Tap to enlarge
                 </span>
-                <label className="absolute bottom-4 right-4 inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
-                  {heroBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
-                  Replace
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => onHeroFile(e.target.files?.[0])}
-                  />
-                </label>
+                <div className="absolute bottom-4 right-4 flex items-center gap-2">
+                  <button
+                    onClick={removeVisionBoard}
+                    disabled={heroBusy}
+                    aria-label="Remove vision board image"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-destructive/80 disabled:opacity-50"
+                  >
+                    <Trash2 className="size-3.5" />
+                    Remove
+                  </button>
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-black/70">
+                    {heroBusy ? <Loader2 className="size-3.5 animate-spin" /> : <Upload className="size-3.5" />}
+                    Replace
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => onHeroFile(e.target.files?.[0])}
+                    />
+                  </label>
+                </div>
               </div>
             </div>
           </>
@@ -391,10 +439,35 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
           </div>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {shownWhy.map((g) => (
-              <div key={g.goal_id} className="card-elevated relative overflow-hidden">
+              <div key={g.goal_id} className="card-elevated group relative overflow-hidden">
                 {g.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={g.image_url} alt={g.content} className="h-40 w-full object-cover" loading="lazy" />
+                  <>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={g.image_url} alt={g.content} className="h-40 w-full object-cover" loading="lazy" />
+                    <div className="absolute right-2 top-2 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                      <label className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition-colors hover:bg-black/70">
+                        {goalBusy === g.goal_id ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Upload className="size-3.5" />
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => onGoalFile(g, e.target.files?.[0])}
+                        />
+                      </label>
+                      <button
+                        onClick={() => removeGoalImage(g)}
+                        disabled={goalBusy === g.goal_id}
+                        aria-label="Remove image"
+                        className="inline-flex size-7 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition-colors hover:bg-destructive/80 disabled:opacity-50"
+                      >
+                        <Trash2 className="size-3.5" />
+                      </button>
+                    </div>
+                  </>
                 ) : (
                   <label className="flex h-40 cursor-pointer flex-col items-center justify-center gap-1.5 bg-muted/40 text-center transition-colors hover:bg-muted/60">
                     {goalBusy === g.goal_id ? (
@@ -416,6 +489,7 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
                     {g.level === "three_year" ? "3-year goal" : "This year"}
                   </p>
                   <p className="mt-0.5 text-sm font-medium leading-snug">{g.content}</p>
+                  {goalError === g.goal_id && <p className="mt-1 text-[11px] text-destructive">{UPLOAD_ERROR}</p>}
                 </div>
               </div>
             ))}

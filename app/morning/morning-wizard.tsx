@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -124,6 +124,7 @@ export function MorningWizard() {
   const [stepIndex, setStepIndex] = useState(0);
   const [data, setData] = useState<MorningInput>(EMPTY);
   const [critique, setCritique] = useState<string | null>(null);
+  const [critiqueSnapshot, setCritiqueSnapshot] = useState<string | null>(null);
   const [loadingCritique, setLoadingCritique] = useState(false);
   const [locking, setLocking] = useState(false);
   const [lockError, setLockError] = useState(false);
@@ -134,21 +135,50 @@ export function MorningWizard() {
   const isReview = stepIndex === STEP_TITLES.length - 1;
   const progress = story ? 100 : ((stepIndex + 1) / STEP_TITLES.length) * 100;
 
+  // Anything typed that isn't in the EMPTY shape — guards against losing it to a stray tap.
+  const isDirty =
+    !story &&
+    (data.affirmations.trim() !== "" ||
+      data.emotion.trim() !== "" ||
+      data.top_priorities.some((p) => p.trim() !== "") ||
+      data.gratitudes.some((g) => g.trim() !== "") ||
+      data.gratitude_felt_most.trim() !== "" ||
+      data.todo.some((t) => t.trim() !== "") ||
+      data.schedule.some((s) => s.block.trim() !== ""));
+  const LEAVE_WARNING = "Leave the morning journal? What you've written so far will be lost.";
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
   async function goToReview() {
     setStepIndex(STEP_TITLES.length - 1);
-    if (critique || loadingCritique) return;
+    if (loadingCritique) return;
+    const plan = {
+      top_priorities: data.top_priorities,
+      todo: data.todo.filter(Boolean),
+      schedule: data.schedule.filter((s) => s.time || s.block),
+    };
+    // Re-evaluate whenever the plan actually changed since the last read —
+    // reuse the cached read otherwise so re-entering review doesn't re-call Leo.
+    const snapshot = JSON.stringify(plan);
+    if (critique !== null && snapshot === critiqueSnapshot) return;
     setLoadingCritique(true);
     try {
-      const result = await critiqueDraftPlan({
-        top_priorities: data.top_priorities,
-        todo: data.todo.filter(Boolean),
-        schedule: data.schedule.filter((s) => s.time || s.block),
-      });
+      const result = await critiqueDraftPlan(plan);
       setCritique(result);
+      setCritiqueSnapshot(snapshot);
     } catch (e) {
       console.error("morning critique failed:", e);
       // Don't block lock-in — leave critique empty; Leo just skips his read.
       setCritique("");
+      setCritiqueSnapshot(snapshot);
     } finally {
       setLoadingCritique(false);
     }
@@ -243,7 +273,7 @@ export function MorningWizard() {
               {STEP_TITLES[stepIndex]}
             </p>
           </div>
-          <CloseButton inline />
+          <CloseButton inline confirmMessage={isDirty ? LEAVE_WARNING : undefined} />
         </div>
         <Progress value={progress} />
       </div>
@@ -526,15 +556,16 @@ export function MorningWizard() {
                     {data.schedule.map((s, i) => {
                       const wheelOpen = openWheelIndex === i;
                       return (
-                        <div key={i} className="space-y-2 rounded-2xl border border-border/60 bg-muted/30 p-2.5">
+                        <div
+                          key={i}
+                          className={`prio-${s.priority ?? 2} prio-band space-y-2 rounded-2xl p-2.5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md`}
+                        >
                           <div className="flex items-center gap-2">
                             <button
                               type="button"
                               onClick={() => setOpenWheelIndex(wheelOpen ? null : i)}
-                              className={`shrink-0 rounded-xl border px-2.5 py-2 font-mono text-xs font-bold tabular-nums transition-colors ${
-                                wheelOpen
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border/60 bg-card text-foreground hover:border-primary/40"
+                              className={`shrink-0 rounded-xl px-2.5 py-2 font-mono text-xs font-bold tabular-nums transition-colors ${
+                                wheelOpen ? "border border-primary bg-primary/10 text-primary" : "prio-chip"
                               }`}
                             >
                               {s.time || "09:00"}

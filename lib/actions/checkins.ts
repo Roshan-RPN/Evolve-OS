@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { moodBoostStory } from "@/lib/ai/coach";
 import { todayISO } from "@/lib/date";
+import { tasksLink } from "@/lib/text-match";
 import { revalidatePath } from "next/cache";
 
 export async function getCheckin(id: string) {
@@ -78,10 +79,9 @@ export async function respondToCheckin({
     const items = Array.isArray(plan?.schedule)
       ? (plan!.schedule as { block?: string; done?: boolean }[])
       : [];
-    const key = ci.linked_priority.trim().toLowerCase();
     let changed = false;
     const next = items.map((it) => {
-      if (it.block?.trim().toLowerCase() === key) {
+      if (tasksLink(it.block, ci.linked_priority)) {
         changed = true;
         return { ...it, done: response === "done" };
       }

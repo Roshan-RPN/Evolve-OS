@@ -244,7 +244,10 @@ export function ScheduleBoard({
         </button>
       )}
       {!readOnly && (
-      <div className={`card-tint tint-indigo corner-cut p-4 sm:p-5 ${composerOpen ? "" : "hidden lg:block"}`}>
+      <div className={`card-tint tint-indigo corner-cut space-y-3.5 p-4 sm:p-5 ${composerOpen ? "" : "hidden lg:block"}`}>
+        <p className="flex items-center gap-1.5 text-sm font-semibold">
+          <CalendarClock className="size-4 text-primary" /> Build the day
+        </p>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
           {/* rotating time wheel */}
           <div className="shrink-0">
@@ -363,7 +366,7 @@ export function ScheduleBoard({
                 className={`prio-${item.priority ?? 2} relative`}
               >
                 <span className="prio-dot absolute -left-4 top-5 size-3.5 rounded-full ring-4 ring-background" />
-                <div className={`prio-band card-elevated group flex items-center gap-3 rounded-2xl p-3 transition-opacity lg:gap-4 lg:p-3.5 ${item.done ? "opacity-70" : ""}`}>
+                <div className={`prio-band card-elevated group flex items-center gap-3 rounded-2xl p-3 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md lg:gap-4 lg:p-3.5 ${item.done ? "opacity-70" : ""}`}>
                   {!readOnly && (
                     <button
                       onClick={() => toggleDone(idx)}

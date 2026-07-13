@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -130,6 +130,30 @@ export function EveningWizard() {
   const isReview = stepIndex === STEP_TITLES.length - 1;
   const progress = result ? 100 : ((stepIndex + 1) / STEP_TITLES.length) * 100;
 
+  const isDirty =
+    !result &&
+    (data.story_moment.trim() !== "" ||
+      data.mistakes.trim() !== "" ||
+      data.better_tomorrow.trim() !== "" ||
+      data.honest_readout.trim() !== "" ||
+      data.energy_leak.trim() !== "" ||
+      data.win.trim() !== "" ||
+      data.first_move.trim() !== "" ||
+      data.vision_felt_note.trim() !== "" ||
+      data.gratitudes.some((g) => g.trim() !== "") ||
+      data.gratitude_felt_most.trim() !== "");
+  const LEAVE_WARNING = "Leave the evening journal? What you've written so far will be lost.";
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
   async function submit() {
     setSubmitting(true);
     setSubmitError(false);
@@ -194,7 +218,7 @@ export function EveningWizard() {
               {STEP_TITLES[stepIndex]}
             </p>
           </div>
-          <CloseButton inline />
+          <CloseButton inline confirmMessage={isDirty ? LEAVE_WARNING : undefined} />
         </div>
         <Progress value={progress} />
       </div>

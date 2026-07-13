@@ -5,6 +5,7 @@ import { getUserId } from "@/lib/user";
 import { getIdentity, getProfile } from "@/lib/actions/onboarding";
 import { generateDaySchedule } from "@/lib/ai/coach";
 import { todayISO, weekKeyOf, weekDates, prettyISO } from "@/lib/date";
+import { tasksLink } from "@/lib/text-match";
 import { revalidatePath } from "next/cache";
 
 export type ScheduleItem = { time: string; block: string; color?: string; priority?: number; done?: boolean };
@@ -64,8 +65,7 @@ export async function toggleScheduleDone(
     .eq("date", target)
     .maybeSingle();
   const items = Array.isArray(data?.schedule) ? (data!.schedule as ScheduleItem[]) : [];
-  const key = block.trim().toLowerCase();
-  const next = items.map((i) => (i.block?.trim().toLowerCase() === key ? { ...i, done } : i));
+  const next = items.map((i) => (tasksLink(i.block, block) ? { ...i, done } : i));
 
   await supabase
     .from("plans")
@@ -73,13 +73,23 @@ export async function toggleScheduleDone(
     .eq("user_id", userId)
     .eq("date", target);
 
-  // Mirror onto a check-in with the same text, so "Your check-ins" on home agrees.
-  await supabase
+  // Mirror onto any check-in for the same task (loose match — wording drifts
+  // between the priority and the schedule block), so "Your check-ins" agrees.
+  const { data: sameDayCheckins } = await supabase
     .from("checkins")
-    .update({ response: done ? "done" : null, responded_at: new Date().toISOString() })
+    .select("id, linked_priority")
     .eq("user_id", userId)
     .eq("date", target)
-    .eq("linked_priority", block.trim());
+    .not("linked_priority", "is", null);
+  const matchedIds = ((sameDayCheckins ?? []) as { id: string; linked_priority: string | null }[])
+    .filter((c) => tasksLink(c.linked_priority, block))
+    .map((c) => c.id);
+  if (matchedIds.length) {
+    await supabase
+      .from("checkins")
+      .update({ response: done ? "done" : null, responded_at: new Date().toISOString() })
+      .in("id", matchedIds);
+  }
 
   revalidatePath("/schedule");
   revalidatePath("/");

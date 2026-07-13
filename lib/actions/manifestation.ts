@@ -390,3 +390,21 @@ export async function setVisionBoard(url: string): Promise<void> {
     await supabase.from("identity").insert({ vision_board_url: value, user_id: userId });
   }
 }
+
+// Remove the hero vision-board image (clears the URL, keeps the setting row).
+export async function clearVisionBoard(): Promise<void> {
+  await setVisionBoard("");
+}
+
+// Remove a goal's tagged image — deletes the manifestation entries that carry
+// it so "Why I'm doing this" falls back to the empty "add a picture" state.
+export async function clearGoalImage(goalId: string): Promise<void> {
+  const userId = await getUserId();
+  const supabase = createServerClient();
+  await supabase
+    .from("manifestations")
+    .delete()
+    .eq("user_id", userId)
+    .eq("goal_id", goalId)
+    .not("image_url", "is", null);
+}
