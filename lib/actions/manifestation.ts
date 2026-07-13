@@ -350,7 +350,7 @@ const IMAGE_TYPES: Record<string, string> = {
   webp: "image/webp",
   gif: "image/gif",
 };
-const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8 MB
+const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB — matches next.config.ts serverActions.bodySizeLimit
 
 export async function uploadVisionImage(formData: FormData): Promise<string | null> {
   await getUserId(); // server action — require a real session (redirects if not)

@@ -37,7 +37,7 @@ import {
   type MoodStory,
 } from "@/lib/actions/manifestation";
 
-const UPLOAD_ERROR = "Upload failed — use a JPG, PNG, WEBP or GIF under 8MB.";
+const UPLOAD_ERROR = "Upload failed — use a JPG, PNG, WEBP or GIF under 10MB.";
 
 const KINDS: { key: ManifestKind; label: string; grad: string; help: string }[] = [
   { key: "vision", label: "Vision", grad: "grad-blue", help: "A scene of the life you're building" },
@@ -444,7 +444,7 @@ export function ManifestationBoard({ data }: { data: ManifestationData }) {
                   <>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={g.image_url} alt={g.content} className="h-40 w-full object-cover" loading="lazy" />
-                    <div className="absolute right-2 top-2 flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="absolute right-2 top-2 flex items-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100">
                       <label className="inline-flex size-7 cursor-pointer items-center justify-center rounded-full bg-black/50 text-white backdrop-blur transition-colors hover:bg-black/70">
                         {goalBusy === g.goal_id ? (
                           <Loader2 className="size-3.5 animate-spin" />
